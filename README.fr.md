@@ -38,9 +38,10 @@ quoi l'installer :
 
 Les décodeurs `twistd`, `operad` et `pi4d` sont fournis avec
 l'installation Windows (dossier `outils`) et compilés par `make` sous
-Linux et macOS. Les programmes ne sont pas encore signés : Windows
-SmartScreen demande une confirmation (Informations complémentaires ›
-Exécuter quand même).
+Linux et macOS. Les versions publiées jusqu'ici ne sont pas encore
+signées : Windows SmartScreen demande une confirmation (Informations
+complémentaires › Exécuter quand même) ; voir
+[Signature du code](#signature-du-code).
 
 ## TWIST Console
 
@@ -123,6 +124,37 @@ mingw-w64-ucrt-x86_64-fftw mingw-w64-ucrt-x86_64-portaudio make`, puis
 `make CC=gcc`), ou CMake + Visual Studio, voir
 [`docs/WINDOWS.md`](docs/WINDOWS.md). La CI construit l'installation
 de TWIST Console ; chaque version publiée la contient.
+
+## Signature du code
+
+Signature du code sous Windows offerte par [SignPath.io](https://about.signpath.io),
+certificat de la [SignPath Foundation](https://signpath.org). *En cours
+de mise en place : les versions publiées jusqu'ici ne sont pas signées.*
+
+- **Ce qui est signé** : les installations Windows d'une version
+  publiée (`TWIST-Console-<version>-setup.exe`, `-mise-a-jour.exe`) et
+  nos propres programmes et bibliothèques qu'elles contiennent
+  (`Twist.exe`, `twistd`, `operad`, `pi4d`, `libtwcore`, `libtwist`,
+  `libopera`, `libpi4`…), compilés depuis ce dépôt par GitHub Actions
+  uniquement ; les bibliothèques d'autres projets (FFTW, PortAudio,
+  Hamlib, .NET, Avalonia) ne sont pas signées par nous. Détails :
+  [`docs/SIGNING.md`](docs/SIGNING.md) (en anglais).
+- **Contributeurs et relecteurs** : [GiPe66](https://github.com/GiPe66)
+  (F6FBB).
+- **Approbateurs** : [GiPe66](https://github.com/GiPe66) (F6FBB), chaque
+  demande de signature approuvée à la main.
+- **Confidentialité** : ce programme ne transmet aucune information à
+  d'autres systèmes en réseau sans que l'utilisateur, ou la personne
+  qui l'installe ou l'exploite, ne le demande expressément. Ce qu'il
+  peut envoyer, chaque point activé ou non dans les Réglages :
+  - la recherche de nouvelles versions : une demande de
+    `update.f6fbb.org/twist/latest.json` (activée par défaut ; rien
+    d'autre n'est envoyé que la demande, avec la version du programme) ;
+  - le locator d'un indicatif reçu sans locator : l'indicatif, demandé
+    à `spots.f6fbb.org` (activé par défaut) ;
+  - les spots reçus, vers fbbspots (`spots.f6fbb.org`) ou un serveur
+    MQTT : seulement si l'utilisateur les configure (désactivé par
+    défaut).
 
 ## Licence et crédits
 
