@@ -22,6 +22,11 @@ versions of TWIST-OOK (0.x).
 - Réglages: an **Appliquer** button saves and applies the settings
   without closing the window (to try one audio input after another).
 
+### Distribution
+- Windows: the installer; macOS (Intel): a .dmg, added to each Release
+  by its own workflow; Linux: built from the sources. README in English
+  and in French (README.fr.md).
+
 ### Libraries
 - The engine is four libraries: `libtwcore` (audio, transmission,
   keying detector, arbitration; no protocol), `libtwist` (TWIST S,

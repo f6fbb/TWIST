@@ -1,5 +1,7 @@
 # TWIST Console
 
+*English · [Français](README.fr.md)*
+
 Weak-signal beacons for VHF/UHF/SHF: the **TWIST** on/off-keyed (OOK)
 beacon modes, and **TWIST Console**, a desktop application to receive
 and transmit them, together with **OPERA** and **PI4**.
@@ -20,6 +22,23 @@ frames are defined in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 **PI4** (PharusIgnis4, Bo Hansen OZ2M: 4-FSK, synchronous on the
 minute) is decoded too, in its own zone (carrier 800 ± 150 Hz by
 default): 50 % decoded at about -23.6 dB, 100 % from -22 dB.
+
+## Download — Windows, Linux, macOS
+
+TWIST Console runs on the three systems; each
+[Release](https://github.com/f6fbb/TWIST/releases) carries what to
+install:
+
+| System | What to install |
+|---|---|
+| **Windows** 10 / 11 (64 bits) | `TWIST-Console-<version>-setup.exe`: the application, its libraries, Hamlib and the decoders, no administrator rights needed. Afterwards the program offers the new versions itself. |
+| **macOS** 10.15 or later (Intel; on Apple Silicon through Rosetta 2, not tested yet) | `TWIST-Console-<version>-mac-intel.dmg`: drag TWIST Console into Applications; the first time, right click › Open (not signed by Apple yet). |
+| **Linux** (x86-64) | built from the sources in a few minutes, see [Build](#build): the libraries and decoders with `make`, the application with `dotnet`. |
+
+The decoders `twistd`, `operad` and `pi4d` come with the Windows
+installer (`outils` folder) and are built by `make` on Linux and macOS.
+The programs are not signed yet: Windows SmartScreen asks for a
+confirmation (More info › Run anyway).
 
 ## TWIST Console
 
@@ -111,13 +130,4 @@ and 7L1RLL. PI4 is the mode of OZ2M, its decoder after JT4 of WSJT-X
 
 ---
 
-### En bref (français)
-
-TWIST est un ensemble de modes de balise OOK pour signaux faibles, qui
-garde la modulation des balises OPERA et remplace le codage par un code
-LDPC : TWIST S (indicatif, +0,8 dB par rapport à OPERA) et TWIST L
-(indicatif + locator, même sensibilité qu'OPERA). **TWIST Console**
-reçoit et émet TWIST, OPERA et PI4 ; OPERA et PI4 sont des composants
-au choix à l'installation. Les décodeurs en ligne de commande sont
-`twistd` (TWIST), `operad` (OPERA) et `pi4d` (PI4). Le guide de
-l'utilisateur est dans `docs/`.
+*French version: [README.fr.md](README.fr.md).*
