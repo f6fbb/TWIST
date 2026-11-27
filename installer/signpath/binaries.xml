@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration "binaries" (docs/SIGNING.md): the
+     artifact unsigned-binaries of the CI, our own programs and libraries
+     only. To paste into SignPath (project twist-console). -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file-set>
+      <include path="Twist.exe" />
+      <include path="Twist.dll" />
+      <include path="twistd.exe" />
+      <include path="operad.exe" />
+      <include path="pi4d.exe" />
+      <include path="twistenc.exe" />
+      <include path="twistlive.exe" />
+      <include path="libtwcore.dll" />
+      <include path="libtwist.dll" />
+      <include path="libopera.dll" />
+      <include path="libpi4.dll" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+  </zip-file>
+</artifact-configuration>

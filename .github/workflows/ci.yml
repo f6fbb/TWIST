@@ -76,6 +76,12 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write          # the Release of a version tag
+      actions: read            # SignPath fetches the artifacts to sign
+    # Code signing (docs/SIGNING.md): on a published Release only, once the
+    # secret SIGNPATH_API_TOKEN and the variable SIGNPATH_ORGANIZATION_ID
+    # exist in the repository's settings; otherwise the files stay unsigned
+    env:
+      SIGN: ${{ github.event_name == 'release' && secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
     defaults:
       run:
         shell: msys2 {0}
@@ -158,6 +164,52 @@ jobs:
           dotnet publish app/Twist.App -c Release -r win-x64 --self-contained true -nologo -o dist/app
           Copy-Item dist/*.dll dist/app/
           Copy-Item -Recurse dist/hamlib dist/app/hamlib
+      # Signing, phase 1: our own programs and libraries, before they go
+      # into the installers (the third-party DLLs - FFTW, PortAudio,
+      # Hamlib, .NET, Avalonia - are left as they are)
+      - name: Signing 1/2 - the files to sign
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force tosign | Out-Null
+          Copy-Item dist/app/Twist.exe, dist/app/Twist.dll tosign/
+          Copy-Item dist/twistd.exe, dist/operad.exe, dist/pi4d.exe, dist/twistenc.exe, dist/twistlive.exe tosign/
+          Copy-Item dist/libtwcore.dll, dist/libtwist.dll, dist/libopera.dll, dist/libpi4.dll tosign/
+      - uses: actions/upload-artifact@v4
+        id: unsigned-binaries
+        if: env.SIGN == 'true'
+        with:
+          name: unsigned-binaries
+          path: tosign/
+          retention-days: 1
+      - name: Signing 1/2 - SignPath (waits for the approval on signpath.io)
+        uses: signpath/github-action-submit-signing-request@v3
+        if: env.SIGN == 'true'
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: twist-console
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: binaries
+          github-artifact-id: ${{ steps.unsigned-binaries.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 7200
+          output-artifact-directory: signed
+      - name: Signing 1/2 - the signed files in place
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          foreach ($f in Get-ChildItem signed -File) {
+            $sig = Get-AuthenticodeSignature $f.FullName
+            Write-Host "$($f.Name): $($sig.Status) $($sig.SignerCertificate.Subject)"
+            if ($sig.Status -ne 'Valid') { Write-Error "not signed: $($f.Name)"; exit 1 }
+            if ($f.Name -like 'Twist.*') { Copy-Item $f.FullName dist/app/ -Force }
+            else {
+              Copy-Item $f.FullName dist/ -Force
+              if ($f.Name -like 'lib*.dll') { Copy-Item $f.FullName dist/app/ -Force }
+            }
+          }
+          if ((Get-ChildItem signed -File).Count -ne 11) { Write-Error "11 signed files expected"; exit 1 }
       - name: Installer (TWIST-Console-<version>-setup.exe, Inno Setup)
         shell: pwsh
         run: |
@@ -215,6 +267,38 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Set-Content dist/update-base.txt $base
           Get-ChildItem dist/setup | Format-Table Name, Length
+      # Signing, phase 2: the installers themselves (before latest.json,
+      # which carries their SHA-256)
+      - uses: actions/upload-artifact@v4
+        id: unsigned-installers
+        if: env.SIGN == 'true'
+        with:
+          name: unsigned-installers
+          path: dist/setup/*.exe
+          retention-days: 1
+      - name: Signing 2/2 - SignPath (waits for the approval on signpath.io)
+        uses: signpath/github-action-submit-signing-request@v3
+        if: env.SIGN == 'true'
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: twist-console
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installers
+          github-artifact-id: ${{ steps.unsigned-installers.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 7200
+          output-artifact-directory: signed-setup
+      - name: Signing 2/2 - the signed installers in place
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          foreach ($f in Get-ChildItem signed-setup -File) {
+            $sig = Get-AuthenticodeSignature $f.FullName
+            Write-Host "$($f.Name): $($sig.Status) $($sig.SignerCertificate.Subject)"
+            if ($sig.Status -ne 'Valid') { Write-Error "not signed: $($f.Name)"; exit 1 }
+            Copy-Item $f.FullName dist/setup/ -Force
+          }
       # latest.json, read by the program to offer the new version
       # (app/Twist.App/Services/Updates.cs): attached to a published
       # Release, to copy with the two installers to update.f6fbb.org/twist/
@@ -341,7 +425,9 @@ jobs:
             $mb = "{0:0.0}" -f ((Get-Item "dist/setup/TWIST-Console-$ver-mise-a-jour.exe").Length / 1MB)
             $update = " Already have TWIST Console $base or newer? **TWIST-Console-$ver-mise-a-jour.exe** ($mb MB) updates it in place, without the whole installer (for a slow or metered connection)."
           }
-          $notes = "TWIST Console $ver`n`n- **Windows** 10 / 11 (64 bits): download and run **TWIST-Console-$ver-setup.exe**.$update`n- **macOS** 10.15 or later (Intel): **TWIST-Console-$ver-mac-intel.dmg** (added a few minutes after the Windows installer); the first time, right click › Open.`n- **Linux**: build from the sources (README, Build).`n`nThe user's guide (French) is attached as PDF. The programs are not signed yet: if Windows SmartScreen stops the installer, 'More info' then 'Run anyway'.`n`n## Changes`n" + $m.Groups[1].Value
+          if ($env:SIGN -eq 'true') { $signed = "The Windows programs and installers are signed (free code signing provided by SignPath.io, certificate by SignPath Foundation)." }
+          else { $signed = "The programs are not signed: if Windows SmartScreen stops the installer, 'More info' then 'Run anyway'." }
+          $notes = "TWIST Console $ver`n`n- **Windows** 10 / 11 (64 bits): download and run **TWIST-Console-$ver-setup.exe**.$update`n- **macOS** 10.15 or later (Intel): **TWIST-Console-$ver-mac-intel.dmg** (added a few minutes after the Windows installer); the first time, right click › Open.`n- **Linux**: build from the sources (README, Build).`n`nThe user's guide (French) is attached as PDF. $signed`n`n## Changes`n" + $m.Groups[1].Value
           Set-Content notes.md $notes -Encoding utf8
           $setup = (Get-ChildItem dist/setup/*.exe).FullName
           gh release upload $tag $setup dist/setup/latest.json docs/TWIST-Console-Guide-utilisateur.pdf --clobber  # (latest.json: step above)

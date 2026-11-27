@@ -37,8 +37,9 @@ install:
 
 The decoders `twistd`, `operad` and `pi4d` come with the Windows
 installer (`outils` folder) and are built by `make` on Linux and macOS.
-The programs are not signed yet: Windows SmartScreen asks for a
-confirmation (More info › Run anyway).
+The releases published so far are not signed yet: Windows SmartScreen
+asks for a confirmation (More info › Run anyway); see
+[Code signing policy](#code-signing-policy).
 
 ## TWIST Console
 
@@ -120,6 +121,35 @@ mingw-w64-ucrt-x86_64-fftw mingw-w64-ucrt-x86_64-portaudio make`, then
 `make CC=gcc`), or CMake + Visual Studio, see
 [`docs/WINDOWS.md`](docs/WINDOWS.md). The CI builds the installer of
 TWIST Console; each Release carries it.
+
+## Code signing policy
+
+Free code signing on Windows provided by [SignPath.io](https://about.signpath.io),
+certificate by [SignPath Foundation](https://signpath.org). *Being set
+up: the releases published so far are not signed.*
+
+- **What is signed**: the Windows installers of a Release
+  (`TWIST-Console-<version>-setup.exe`, `-mise-a-jour.exe`) and our own
+  programs and libraries in them (`Twist.exe`, `twistd`, `operad`,
+  `pi4d`, `libtwcore`, `libtwist`, `libopera`, `libpi4`…), built from
+  this repository by GitHub Actions only; the third-party libraries
+  (FFTW, PortAudio, Hamlib, .NET, Avalonia) are not signed by us. Details:
+  [`docs/SIGNING.md`](docs/SIGNING.md).
+- **Committers and reviewers**: [GiPe66](https://github.com/GiPe66)
+  (F6FBB).
+- **Approvers**: [GiPe66](https://github.com/GiPe66) (F6FBB), each
+  signing request approved by hand.
+- **Privacy**: this program will not transfer any information to other
+  networked systems unless specifically requested by the user or the
+  person installing or operating it. What it can send, each turned on
+  or off in Réglages:
+  - the check for new versions: a request for
+    `update.f6fbb.org/twist/latest.json` (on by default; nothing sent but
+    the request itself, with the program's version);
+  - the locator of a callsign heard without one: the callsign, asked of
+    `spots.f6fbb.org` (on by default);
+  - the spots received, to fbbspots (`spots.f6fbb.org`) or to an MQTT
+    broker: only when the user configures them (off by default).
 
 ## Licence and credits
 
