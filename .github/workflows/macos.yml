@@ -6,9 +6,15 @@ name: macos
 # a .zip, then the application started once to see that it opens.
 # By hand (Actions › macos › Run workflow), and for each published
 # Release, to which the .dmg and the .zip are added (the Windows
-# installer: ci.yml).
+# installer: ci.yml). By hand with a tag (v1.0.0-rc.1): added to that
+# Release, already published.
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release to add the .dmg and the .zip to (v1.0.0-rc.1); empty: none"
+        required: false
+        default: ""
   release:
     types: [published]
 
@@ -67,12 +73,12 @@ jobs:
           echo "== $log"; cat "$log"
           ! grep -q fatal "$log"
           pkill -f "TWIST Console.app/Contents/MacOS/Twist" || true
-      - name: Release (published Release only)
-        if: github.event_name == 'release'
+      - name: Release (published Release, or the tag given by hand)
+        if: github.event_name == 'release' || inputs.tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${{ github.event.release.tag_name }}"
+          tag="${{ github.event.release.tag_name || inputs.tag }}"
           ver=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' app/Twist.App/Twist.App.csproj | head -1)
           [ "$tag" = "v$ver" ] || { echo "::error::tag $tag, but the application is $ver"; exit 1; }
           gh release upload "$tag" dist/*.dmg dist/*.zip --clobber
