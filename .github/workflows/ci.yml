@@ -1,0 +1,350 @@
+name: build-and-test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # a Release published on GitHub (Releases › Draft a new release, tag
+  # v0.17.0 created on main): the installer and the user's guide are
+  # built and added to it, see the last step of the windows job
+  release:
+    types: [published]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # (the runners' Ubuntu mirror, azure.archive.ubuntu.com, can fail to
+      # resolve for a while - 2026-11-11: an hour: retried, then the main
+      # Ubuntu archive instead)
+      - name: Install FFTW
+        run: |
+          pkgs="libfftw3-dev portaudio19-dev pkg-config libhamlib-utils mosquitto"
+          for i in 1 2 3; do
+            if sudo apt-get -o Acquire::Retries=3 update && sudo apt-get -o Acquire::Retries=3 install -y $pkgs; then exit 0; fi
+            echo "apt failed (try $i): the main Ubuntu archive instead of the runners' mirror"
+            sudo sed -i 's#azure\.archive\.ubuntu\.com#archive.ubuntu.com#g' /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
+            sleep 20
+          done
+          exit 1
+      - name: Build
+        run: make
+      - name: Test
+        run: |
+          set +e
+          make  test > test.log 2>&1; rc=$?
+          cat test.log
+          if [ $rc -ne 0 ]; then
+            echo "::error title=make test failed::$(tail -n 40 test.log | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk '{printf "%s%%0A", $0}')"
+          fi
+          exit $rc
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Application (build, tests, screenshots of every window)
+        run: |
+          dotnet build app/Twist.sln -c Release -nologo
+          (sudo systemctl start mosquitto || mosquitto -d -p 1883) && sleep 1
+          # a failure is also given as an annotation (readable without the log)
+          rc=0; TWIST_MQTT=1 dotnet test app/Twist.Tests -c Release --no-build -nologo > dtest.log 2>&1 || rc=$?
+          cat dtest.log
+          if [ $rc -ne 0 ]; then
+            echo "::error title=dotnet test failed::$(grep -E -A12 '^\s*Failed ' dtest.log | head -n 60 | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk '{printf "%s%%0A", $0}')"
+            exit $rc
+          fi
+          cp libtwcore.so libtwist.so libopera.so libpi4.so app/Twist.Screenshots/bin/Release/net8.0/
+          rc=0; dotnet app/Twist.Screenshots/bin/Release/net8.0/Twist.Screenshots.dll screenshots /tmp/tw_t1.wav > shots.log 2>&1 || rc=$?
+          cat shots.log
+          if [ $rc -ne 0 ]; then
+            echo "::error title=screenshots failed::$(tail -n 30 shots.log | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk '{printf "%s%%0A", $0}')"
+            exit $rc
+          fi
+      # Artifacts: few, kept a few days, never blocking - the private
+      # repository has 0.5 GB of artifact storage (4.7 GB of 90-day
+      # artifacts filled it on 2026-10-31 and failed the builds); none
+      # for a Release, whose files go to the Release itself
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'release'
+        continue-on-error: true
+        with:
+          name: twist-app-screenshots
+          path: screenshots/
+          retention-days: 3
+
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write          # the Release of a version tag
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-fftw
+            mingw-w64-ucrt-x86_64-portaudio
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-python
+            unzip
+      - name: Build
+        run: make CC=gcc
+      - name: Test
+        run: |
+          set +e
+          make CC=gcc test > test.log 2>&1; rc=$?
+          cat test.log
+          if [ $rc -ne 0 ]; then
+            echo "::error title=make test failed::$(tail -n 40 test.log | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk '{printf "%s%%0A", $0}')"
+          fi
+          exit $rc
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp twistd.exe operad.exe pi4d.exe twistenc.exe twistlive.exe libtwcore.dll libtwist.dll libopera.dll libpi4.dll dist/
+          cp core/twltypes.h core/twcore.h core/libtwist.h core/twcl.h core/libpi4.h bindings/csharp/LibTwist.cs dist/
+          cp /ucrt64/bin/libfftw3-3.dll /ucrt64/bin/libfftw3_threads-3.dll dist/ 2>/dev/null || cp /ucrt64/bin/libfftw3*.dll dist/ || true
+          cp /ucrt64/bin/libportaudio*.dll dist/ || true
+          for d in libgcc_s_seh-1.dll libwinpthread-1.dll; do [ -f /ucrt64/bin/$d ] && cp /ucrt64/bin/$d dist/; done; true
+          # Hamlib's rigctld and rigctl with their DLLs, from the official
+          # Windows release (MSYS2 has no Hamlib package), for the application (app/hamlib)
+          HL=4.6.5
+          curl -fsSL -o hamlib.zip "https://github.com/Hamlib/Hamlib/releases/download/$HL/hamlib-w64-$HL.zip"
+          sha256sum hamlib.zip
+          unzip -q hamlib.zip -d hl
+          top=$(ls -d hl/*/ | head -1)
+          mkdir -p dist/hamlib
+          cp "$top"bin/rigctld.exe "$top"bin/rigctl.exe "$top"bin/*.dll dist/hamlib/
+          cp "$top"COPYING* "$top"LICENSE* "$top"README* dist/hamlib/ 2>/dev/null || true
+          ls dist/hamlib
+          ./dist/hamlib/rigctl.exe -l | head -3
+          ./dist/hamlib/rigctl.exe -l | grep -c RIG_MODEL_
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: C# bindings (TwistDemo through the libraries)
+        shell: pwsh
+        run: |
+          dotnet build bindings/csharp/TwistDemo -c Release -nologo
+          Copy-Item dist/*.dll bindings/csharp/TwistDemo/bin/Release/net8.0/
+          dotnet bindings/csharp/TwistDemo/bin/Release/net8.0/TwistDemo.dll tests/real/f5zzo.wav | Tee-Object -FilePath demo.txt
+          if (-not (Select-String -Path demo.txt -Pattern "F5ZZO")) { Write-Error "F5ZZO not decoded through libopera.dll"; exit 1 }
+          dotnet bindings/csharp/TwistDemo/bin/Release/net8.0/TwistDemo.dll -t tx.wav F5ZZO JN12AX
+          dotnet bindings/csharp/TwistDemo/bin/Release/net8.0/TwistDemo.dll tx.wav | Tee-Object -FilePath demo2.txt
+          if (-not (Select-String -Path demo2.txt -Pattern "TWIST L\s+: F5ZZO JN12AX")) { Write-Error "transmit sequence not decoded back"; exit 1 }
+          # without the optional libraries: TWIST only, no error (in a
+          # folder of its own: Windows would find them in the current one)
+          $d = "$env:RUNNER_TEMP\demo"
+          Copy-Item -Recurse bindings/csharp/TwistDemo/bin/Release/net8.0 $d
+          Copy-Item tx.wav $d
+          Remove-Item "$d/libopera.dll", "$d/libpi4.dll"
+          Push-Location $d
+          dotnet TwistDemo.dll tx.wav | Tee-Object -FilePath demo3.txt
+          Pop-Location
+          Move-Item "$d/demo3.txt" demo3.txt
+          if (-not (Select-String -Path demo3.txt -Pattern "TWIST L\s+: F5ZZO JN12AX") -or (Select-String -Path demo3.txt -Pattern "05\s+: F5ZZO")) { Write-Error "without libopera.dll: TWIST L only expected"; exit 1 }
+          Push-Location dist
+          ./twistlive.exe -l
+          Pop-Location
+      - name: Application (Twist.exe, self-contained)
+        shell: pwsh
+        run: |
+          dotnet publish app/Twist.App -c Release -r win-x64 --self-contained true -nologo -o dist/app
+          Copy-Item dist/*.dll dist/app/
+          Copy-Item -Recurse dist/hamlib dist/app/hamlib
+      - name: Installer (TWIST-Console-<version>-setup.exe, Inno Setup)
+        shell: pwsh
+        run: |
+          $ver = ([xml](Get-Content app/Twist.App/Twist.App.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          $num = $ver -replace '-.*$', ''
+          # what the installer takes: the application, the decoders (twistd,
+          # operad, pi4d) with the DLLs they need, the testers' guide
+          New-Item -ItemType Directory -Force dist/outils | Out-Null
+          Copy-Item dist/twistd.exe, dist/operad.exe, dist/pi4d.exe dist/outils/
+          Get-ChildItem dist/*.dll | Where-Object { $_.Name -notmatch '^lib(twcore|twist|opera|pi4)\.dll$' } | Copy-Item -Destination dist/outils/
+          Get-Content docs/TESTEURS.md -Encoding utf8 | Set-Content dist/TESTEURS.txt -Encoding utf8BOM
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc "/DAppVersion=$ver" "/DNumVersion=$num" "/DSrc=$((Resolve-Path dist).Path)" installer/twist-console.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Get-ChildItem dist/setup | Format-Table Name, Length
+      # The update (TWIST-Console-<version>-mise-a-jour.exe, a few MB): only
+      # what changes from one version to the next - Twist.exe/.dll, the
+      # libraries and their DLLs, the decoders, the guides (testers',
+      # user's PDF) - for the testers on a slow connection; the optional
+      # libraries and decoders only where they are installed. Valid over
+      # an installation that has the same NuGet packages: the base is the
+      # oldest release whose Twist.App.csproj has the same
+      # PackageReference lines, release after release back from the newest
+      # (gh lists them newest first); none: no update this time.
+      - name: Update installer (TWIST-Console-<version>-mise-a-jour.exe)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ver = ([xml](Get-Content app/Twist.App/Twist.App.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          $num = $ver -replace '-.*$', ''
+          function Packages($text) { ($text -split "`n" | Where-Object { $_ -match 'PackageReference' } | ForEach-Object { $_.Trim() } | Sort-Object) -join "`n" }
+          $now = Packages (Get-Content app/Twist.App/Twist.App.csproj -Raw)
+          $tags = gh release list --repo ${{ github.repository }} --limit 100 --json tagName,isDraft --jq '.[] | select(.isDraft | not) | .tagName' |
+                  Where-Object { $_ -match '^v\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$' -and $_ -ne "v$ver" }
+          $base = $null
+          foreach ($t in $tags) {
+            git fetch --quiet --no-tags --depth=1 origin "refs/tags/${t}:refs/tags/${t}"
+            $then = Packages ((git show "${t}:app/Twist.App/Twist.App.csproj") -join "`n")
+            if ($then -ne $now) { Write-Host "$t has other NuGet packages: the update stops at the release after it"; break }
+            $base = $t.TrimStart('v')
+          }
+          if (-not $base) { Write-Host "no earlier release with the same packages: no update this time"; exit 0 }
+          Write-Host "update $ver over $base or newer"
+          New-Item -ItemType Directory -Force dist/update | Out-Null
+          Copy-Item dist/app/Twist.exe, dist/app/Twist.dll, dist/app/Twist.deps.json, dist/app/Twist.runtimeconfig.json, dist/*.dll, dist/TESTEURS.txt, CREDITS.md, docs/TWIST-Console-Guide-utilisateur.pdf dist/update/
+          New-Item -ItemType Directory -Force dist/update/outils | Out-Null
+          Copy-Item dist/outils/* dist/update/outils/
+          Get-ChildItem dist/update | Format-Table Name, Length
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc "/DAppVersion=$ver" "/DNumVersion=$num" "/DBaseVersion=$base" "/DSrc=$((Resolve-Path dist).Path)" installer/twist-console-update.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Set-Content dist/update-base.txt $base
+          Get-ChildItem dist/setup | Format-Table Name, Length
+      # latest.json, read by the program to offer the new version
+      # (app/Twist.App/Services/Updates.cs): attached to a published
+      # Release, to copy with the two installers to update.f6fbb.org/twist/
+      # (docs/WINDOWS.md); made and checked on every build
+      - name: latest.json (version, changes, installers and their SHA-256)
+        shell: pwsh
+        run: |
+          $ver = ([xml](Get-Content app/Twist.App/Twist.App.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          $log = Get-Content CHANGELOG.md -Raw -Encoding utf8
+          $m = [regex]::Match($log, "(?ms)^## \[$([regex]::Escape($ver))\][^\n]*\n(.*?)(?=^## |\z)")
+          function Entry($path) {
+            $f = Get-Item $path
+            [ordered]@{ file = $f.Name; size = $f.Length; sha256 = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
+          }
+          $win = [ordered]@{ setup = (Entry "dist/setup/TWIST-Console-$ver-setup.exe") }
+          if (Test-Path dist/update-base.txt) {
+            $win.update = Entry "dist/setup/TWIST-Console-$ver-mise-a-jour.exe"
+            $win.update.base = (Get-Content dist/update-base.txt).Trim()
+          }
+          $latest = [ordered]@{ version = $ver; date = (Get-Date -Format "yyyy-MM-dd"); notes = $m.Groups[1].Value.Trim();
+                                page = "https://update.f6fbb.org/twist/"; windows = $win }
+          $latest | ConvertTo-Json -Depth 5 | Set-Content dist/setup/latest.json -Encoding utf8NoBOM
+          Get-Content dist/setup/latest.json
+          $back = Get-Content dist/setup/latest.json -Raw | ConvertFrom-Json
+          if ($back.version -ne $ver -or $back.windows.setup.sha256.Length -ne 64 -or -not $back.notes) { Write-Error "latest.json incomplete"; exit 1 }
+      - name: Installer check (silent install, files, uninstall)
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem dist/setup/*-setup.exe).FullName
+          $dir = "$env:RUNNER_TEMP\twist-console-test"
+          Start-Process $setup -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /DIR=`"$dir`" /LOG=`"$env:RUNNER_TEMP\setup.log`"" -Wait
+          foreach ($f in "Twist.exe", "libtwcore.dll", "libtwist.dll", "libopera.dll", "libpi4.dll", "hamlib\rigctld.exe",
+                         "outils\twistd.exe", "outils\operad.exe", "outils\pi4d.exe", "TESTEURS.txt", "LICENSE", "CREDITS.md", "TWIST-Console-Guide-utilisateur.pdf") {
+            if (-not (Test-Path "$dir\$f")) { Get-Content "$env:RUNNER_TEMP\setup.log" | Select-Object -Last 30; Write-Error "missing after install: $f"; exit 1 }
+          }
+          & "$dir\outils\operad.exe" tests/real/f5zzo.wav | Tee-Object -FilePath inst.txt
+          if (-not (Select-String -Path inst.txt -Pattern "F5ZZO")) { Write-Error "installed operad does not decode"; exit 1 }
+          & "$dir\outils\pi4d.exe" tests/real/pi4_f5zzo.wav | Tee-Object -FilePath inst4.txt
+          if (-not (Select-String -Path inst4.txt -Pattern "F5ZZO")) { Write-Error "installed pi4d does not decode"; exit 1 }
+          & "$dir\outils\twistd.exe" -h | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) { Write-Error "installed twistd does not run"; exit 1 }
+          # installed again without OPERA nor PI4: their library and decoder removed, TWIST kept
+          Start-Process $setup -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /DIR=`"$dir`" /COMPONENTS=`"main`" /LOG=`"$env:RUNNER_TEMP\setup2.log`"" -Wait
+          foreach ($f in "libopera.dll", "libpi4.dll", "outils\operad.exe", "outils\pi4d.exe") {
+            if (Test-Path "$dir\$f") { Write-Error "still there without its component: $f"; exit 1 }
+          }
+          foreach ($f in "libtwcore.dll", "libtwist.dll", "outils\twistd.exe") {
+            if (-not (Test-Path "$dir\$f")) { Write-Error "missing without the optional components: $f"; exit 1 }
+          }
+          Write-Host "components OK"
+          # the update over that installation: same folder, files replaced
+          $upd = Get-ChildItem dist/setup/*-mise-a-jour.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($upd) {
+            Remove-Item "$dir\Twist.dll", "$dir\TWIST-Console-Guide-utilisateur.pdf"
+            $u = Start-Process $upd.FullName -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /LOG=`"$env:RUNNER_TEMP\update.log`"" -Wait -PassThru
+            if ($u.ExitCode -ne 0 -or -not (Test-Path "$dir\Twist.dll") -or -not (Test-Path "$dir\TWIST-Console-Guide-utilisateur.pdf")) { Get-Content "$env:RUNNER_TEMP\update.log" | Select-Object -Last 30; Write-Error "update not applied over the installation"; exit 1 }
+            if ((Test-Path "$dir\libopera.dll") -or (Test-Path "$dir\outils\pi4d.exe")) { Write-Error "the update brought back a protocol not installed"; exit 1 }
+            Write-Host "update over the installation OK"
+          }
+          Start-Process "$dir\unins000.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES" -Wait
+          Start-Sleep -Seconds 2
+          if (Test-Path "$dir\Twist.exe") { Write-Error "still there after uninstall"; exit 1 }
+          Write-Host "install / uninstall OK"
+          # and refused where TWIST Console is not installed
+          if ($upd) {
+            $u = Start-Process $upd.FullName -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES" -Wait -PassThru
+            if ($u.ExitCode -eq 0) { Write-Error "update accepted without an installation"; exit 1 }
+            Write-Host "update refused without an installation: OK (exit code $($u.ExitCode))"
+          }
+      # the installers (45 MB): for main only, two days
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        continue-on-error: true
+        with:
+          name: twist-console-setup
+          path: dist/setup/*.exe
+          retention-days: 2
+      - name: rigctld (Hamlib dummy radio, as the application talks to it)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist/app/hamlib/rigctld.exe -ArgumentList "-m 1 -t 4534 -T 127.0.0.1 -P RIG" -PassThru -NoNewWindow
+          Start-Sleep -Seconds 2
+          $c = [System.Net.Sockets.TcpClient]::new("127.0.0.1", 4534)
+          $s = $c.GetStream(); $w = [System.IO.StreamWriter]::new($s); $w.AutoFlush = $true; $r = [System.IO.StreamReader]::new($s)
+          $w.WriteLine("f"); $f = $r.ReadLine()
+          $w.WriteLine("T 1"); $t1 = $r.ReadLine()
+          $w.WriteLine("T 0"); $t0 = $r.ReadLine()
+          $c.Close(); Stop-Process -Id $p.Id
+          Write-Host "f=$f T1=$t1 T0=$t0"
+          if ([double]$f -le 0 -or $t1 -ne "RPRT 0" -or $t0 -ne "RPRT 0") { Write-Error "rigctld does not answer as expected"; exit 1 }
+      # the command-line tools and the library (a few MB): main, 7 days
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        continue-on-error: true
+        with:
+          name: twist-windows-x64
+          path: |
+            dist/*.exe
+            dist/*.dll
+            dist/*.h
+            dist/*.cs
+          retention-days: 7
+      # A Release published on GitHub, its tag v1.0.0-rc.1 (or a tag pushed,
+      # then the Release made from it): the installer and the user's guide
+      # (PDF) added to it, its text the section of CHANGELOG.md, marked
+      # pre-release when the version has a suffix (-rc.1). Refused if the
+      # tag is not the version of app/Twist.App/Twist.App.csproj. The Release can be
+      # edited or deleted on the Releases page.
+      - name: Release (published Release only)
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          $ver = ([xml](Get-Content app/Twist.App/Twist.App.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          if ($tag -ne "v$ver") { Write-Error "tag $tag, but the application is $ver (Twist.App.csproj)"; exit 1 }
+          $log = Get-Content CHANGELOG.md -Raw -Encoding utf8
+          $m = [regex]::Match($log, "(?ms)^## \[$([regex]::Escape($ver))\][^\n]*\n(.*?)(?=^## |\z)")
+          if (-not $m.Success) { Write-Error "no section ## [$ver] in CHANGELOG.md"; exit 1 }
+          $update = ""
+          if (Test-Path dist/update-base.txt) {
+            $base = (Get-Content dist/update-base.txt).Trim()
+            $mb = "{0:0.0}" -f ((Get-Item "dist/setup/TWIST-Console-$ver-mise-a-jour.exe").Length / 1MB)
+            $update = "`n`nAlready have TWIST Console $base or newer? **TWIST-Console-$ver-mise-a-jour.exe** ($mb MB) updates it in place, without the whole installer (for a slow or metered connection)."
+          }
+          $notes = "TWIST Console $ver for Windows 10 / 11 (64 bits): download and run **TWIST-Console-$ver-setup.exe**; the user's guide (French) is attached as PDF.$update`n`nThe program is not signed yet: if Windows SmartScreen stops it, 'More info' then 'Run anyway'.`n`n## Changes`n" + $m.Groups[1].Value
+          Set-Content notes.md $notes -Encoding utf8
+          $setup = (Get-ChildItem dist/setup/*.exe).FullName
+          gh release upload $tag $setup dist/setup/latest.json docs/TWIST-Console-Guide-utilisateur.pdf --clobber  # (latest.json: step above)
+          # a version with a suffix (1.0.0-rc.1) is a pre-release
+          if ($ver -match '-') { gh release edit $tag --title "TWIST Console $ver" --notes-file notes.md --prerelease }
+          else { gh release edit $tag --title "TWIST Console $ver" --notes-file notes.md --prerelease=false --latest }

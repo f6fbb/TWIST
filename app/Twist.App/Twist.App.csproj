@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    TWIST desktop application (docs/SPECIFICATION.md), C# .NET 8 +
+    Avalonia 11 (MVVM with CommunityToolkit.Mvvm).
+    The engine is the native libraries built at the repository root
+    (libtwcore, libtwist, libopera, libpi4: .dll / .so / .dylib), called
+    through bindings/csharp/LibTwist.cs.
+
+      make                                (repository root: builds the libraries)
+      dotnet run (in app/Twist.App)
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AssemblyName>Twist</AssemblyName>
+    <RootNamespace>Twist.App</RootNamespace>
+    <Version>1.0.0-rc.1</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>Assets/twist.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.13" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/**" Exclude="Assets/callcheck.json" />
+    <EmbeddedResource Include="Lang/en.json" LogicalName="Twist.App.Lang.en.json" />
+    <EmbeddedResource Include="Assets/callcheck.json" LogicalName="Twist.App.callcheck.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../../bindings/csharp/LibTwist.cs" Link="Native/LibTwist.cs" />
+    <!-- the native libraries built by make, copied next to the program when present -->
+    <None Include="../../libtwcore.*;../../libtwist.*;../../libopera.*;../../libpi4.*" Exclude="../../*.a" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+</Project>

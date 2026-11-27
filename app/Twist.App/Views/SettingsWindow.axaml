@@ -1,0 +1,329 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Twist.App.ViewModels"
+        x:Class="Twist.App.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Icon="/Assets/twist.ico" Title="TWIST Console — Réglages" Width="900" Height="640" MinWidth="720" MinHeight="480"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource Panel}">
+
+  <Window.Styles>
+    <Style Selector="TextBlock.legend">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="StackPanel.field">
+      <Setter Property="Spacing" Value="4" />
+    </Style>
+    <Style Selector="StackPanel.field > TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="TabControl > TabItem">
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="MinHeight" Value="36" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel>
+    <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="16,10">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+          <TextBlock Classes="muted" VerticalAlignment="Center" Text="Profil" />
+          <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding Profile}" MinWidth="150"
+                    ToolTip.Tip="Les onglets Audio, Radio, Décodage et Balise dépendent du profil (2 m, 70 cm, autre transceiver…)" />
+          <Button Click="OnNewProfile" ToolTip.Tip="Un autre profil : 70 cm, autre transceiver…">Nouveau…</Button>
+          <Button Click="OnRenameProfile">Renommer…</Button>
+          <Button Click="OnDeleteProfile" IsEnabled="{Binding CanDeleteProfile}">Supprimer</Button>
+        </StackPanel>
+        <StackPanel VerticalAlignment="Center" Spacing="2">
+          <TextBlock FontSize="15" FontWeight="SemiBold" Text="Réglages" />
+          <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                     Text="Audio, Radio, Décodage et Balise : propres au profil choisi. Station, Rapports et Interface : communs." />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="16,10">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+          <Button Click="OnCancel">Annuler</Button>
+          <Button Click="OnApply" ToolTip.Tip="Enregistre et applique les réglages sans fermer la fenêtre (par exemple pour essayer une autre entrée audio)">Appliquer</Button>
+          <Button Background="#1F6F8B" Foreground="White" FontWeight="SemiBold" Click="OnSave">Enregistrer</Button>
+        </StackPanel>
+        <StackPanel VerticalAlignment="Center" Spacing="2">
+          <TextBlock Foreground="{DynamicResource ErrorText}" FontWeight="SemiBold" Text="{Binding Error}" TextWrapping="Wrap"
+                     IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding FilePath}" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <TabControl TabStripPlacement="Left" SelectedIndex="{Binding Tab}" Padding="24,16">
+      <TabItem Header="Station">
+        <StackPanel Spacing="16" MaxWidth="560" HorizontalAlignment="Left">
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+            <StackPanel Classes="field"><TextBlock Text="Indicatif" /><TextBox Classes="mono" Text="{Binding Callsign}" /></StackPanel>
+            <StackPanel Classes="field" Grid.Column="1"><TextBlock Text="Locator (4 ou 6 caractères)" /><TextBox Classes="mono" Text="{Binding Locator}" /></StackPanel>
+          </Grid>
+          <StackPanel Classes="field">
+            <TextBlock Text="Indicatifs connus (recherche approfondie), séparés par des virgules" />
+            <TextBox Classes="mono" Text="{Binding KnownCalls}" TextWrapping="Wrap" AcceptsReturn="False" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Avec son locator si besoin : F5ZZO JN12AX, F1HDI. Il sert aux trames reçues sans locator (OPERA 05, TWIST S)." />
+          </StackPanel>
+          <StackPanel Classes="field">
+            <CheckBox IsChecked="{Binding LocatorLookup}"
+                      Content="Chercher sur fbbspots (spots.f6fbb.org) le locator des indicatifs reçus sans locator" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Une question par indicatif, la réponse gardée 30 jours. Ordre : le locator de la trame, cette liste, les trames TWIST L déjà reçues, puis fbbspots. Un locator qui ne vient pas de la trame est en minuscules et grisé dans la liste des spots (JN12AX reçu, jn12ax trouvé), et n'est ni publié ni écrit dans le journal CSV." />
+          </StackPanel>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Audio">
+        <StackPanel Spacing="16" MaxWidth="560" HorizontalAlignment="Left">
+          <StackPanel Classes="field"><TextBlock Text="Entrée (réception)" /><ComboBox ItemsSource="{Binding InputDevices}" SelectedItem="{Binding InputDevice}" HorizontalAlignment="Stretch" /></StackPanel>
+          <StackPanel Classes="field"><TextBlock Text="Sortie (émission)" /><ComboBox ItemsSource="{Binding OutputDevices}" SelectedItem="{Binding OutputDevice}" HorizontalAlignment="Stretch" /></StackPanel>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+            <StackPanel Classes="field"><TextBlock Text="Niveau de sortie" /><Slider Value="{Binding TxLevel}" Maximum="100" /></StackPanel>
+            <StackPanel Classes="field" Grid.Column="1"><TextBlock Text="Ton d'émission (Hz)" /><TextBox Classes="mono" Text="{Binding ToneHz}" /></StackPanel>
+          </Grid>
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="La fréquence d'échantillonnage est celle du périphérique ; la réception est ramenée à 12 kHz." />
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Radio">
+        <ScrollViewer>
+        <StackPanel Spacing="20" MaxWidth="640" HorizontalAlignment="Left" Margin="0,0,12,0">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="legend" Text="Contrôle CAT (Hamlib)" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <RadioButton GroupName="cat" IsChecked="{Binding CatMode, Converter={x:Static vm:Conv.IntEquals}, ConverterParameter=0}">Aucun</RadioButton>
+              <RadioButton GroupName="cat" IsChecked="{Binding CatMode, Converter={x:Static vm:Conv.IntEquals}, ConverterParameter=1}">Hamlib (rigctld lancé par TWIST)</RadioButton>
+              <RadioButton GroupName="cat" IsChecked="{Binding CatMode, Converter={x:Static vm:Conv.IntEquals}, ConverterParameter=2}">rigctld déjà lancé (réseau)</RadioButton>
+            </StackPanel>
+            <Grid ColumnDefinitions="2*,*,*" ColumnSpacing="16" IsVisible="{Binding HamlibMode}">
+              <StackPanel Classes="field">
+                <TextBlock Text="Transceiver (taper pour chercher)" />
+                <AutoCompleteBox ItemsSource="{Binding Models}" Text="{Binding RigText}" FilterMode="ContainsOrdinal"
+                                 MinimumPrefixLength="1" MaxDropDownHeight="320" Watermark="FT-991, IC-9700…" />
+              </StackPanel>
+              <StackPanel Classes="field" Grid.Column="1">
+                <TextBlock Text="Port série" />
+                <AutoCompleteBox ItemsSource="{Binding Ports}" Text="{Binding Port}" FilterMode="StartsWith" MinimumPrefixLength="0"
+                                 Watermark="COM4" Classes="mono" />
+              </StackPanel>
+              <StackPanel Classes="field" Grid.Column="2">
+                <TextBlock Text="Vitesse (bauds)" />
+                <ComboBox ItemsSource="{Binding Bauds}" SelectedItem="{Binding Baud}" HorizontalAlignment="Stretch" />
+              </StackPanel>
+            </Grid>
+            <Grid ColumnDefinitions="2*,*" ColumnSpacing="16" IsVisible="{Binding NetMode}">
+              <StackPanel Classes="field"><TextBlock Text="Adresse de rigctld" /><TextBox Text="{Binding NetHost}" Watermark="127.0.0.1" /></StackPanel>
+              <StackPanel Classes="field" Grid.Column="1"><TextBlock Text="Port TCP" /><TextBox Classes="mono" Text="{Binding NetPort}" /></StackPanel>
+            </Grid>
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding HamlibInfo}" IsVisible="{Binding CatOn}" />
+            <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding CatOn}">
+              <Button Command="{Binding TestCatCommand}" IsEnabled="{Binding !Testing}">Tester la liaison</Button>
+              <TextBlock Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="460" Text="{Binding RadioTest}" />
+            </StackPanel>
+          </StackPanel>
+
+          <StackPanel Spacing="10">
+            <TextBlock Classes="legend" Text="Commande d'émission (PTT)" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <RadioButton GroupName="ptt" IsChecked="{Binding PttMethod, Converter={x:Static vm:Conv.IntEquals}, ConverterParameter=0}">VOX</RadioButton>
+              <RadioButton GroupName="ptt" IsChecked="{Binding PttMethod, Converter={x:Static vm:Conv.IntEquals}, ConverterParameter=1}">CAT</RadioButton>
+              <RadioButton GroupName="ptt" IsChecked="{Binding PttMethod, Converter={x:Static vm:Conv.IntEquals}, ConverterParameter=2}">DTR</RadioButton>
+              <RadioButton GroupName="ptt" IsChecked="{Binding PttMethod, Converter={x:Static vm:Conv.IntEquals}, ConverterParameter=3}">RTS</RadioButton>
+            </StackPanel>
+            <WrapPanel ItemSpacing="20" LineSpacing="8">
+              <StackPanel Classes="pair" IsVisible="{Binding PttPortEnabled}">
+                <TextBlock Classes="muted" Text="Port PTT (DTR / RTS)" />
+                <AutoCompleteBox ItemsSource="{Binding Ports}" Text="{Binding PttPort}" FilterMode="StartsWith" MinimumPrefixLength="0"
+                                 Width="140" Watermark="= port CAT" />
+              </StackPanel>
+              <CheckBox IsChecked="{Binding DataPtt}" IsVisible="{Binding CatOn}">PTT « données » (audio par la prise arrière / USB)</CheckBox>
+              <StackPanel Classes="pair">
+                <TextBlock Classes="muted" Text="Avance du PTT (s)" />
+                <TextBox Classes="mono" Width="70" Text="{Binding TxDelay}" />
+              </StackPanel>
+            </WrapPanel>
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="Le PTT est commandé l'avance indiquée avant l'audio (relais du transceiver), relâché à la fin, à l'arrêt, en cas d'erreur et à la fermeture. DTR / RTS sur le port du CAT : par rigctld ; sur un autre port : directement." />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Button Command="{Binding TestPttCommand}" IsEnabled="{Binding !Testing}">Tester le PTT (2 s)</Button>
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="sur charge fictive ou antenne, comme une émission" />
+            </StackPanel>
+          </StackPanel>
+
+          <StackPanel Spacing="8">
+            <TextBlock Classes="legend" Text="Fréquence de la radio (pour la fréquence RF des spots)" />
+            <RadioButton GroupName="freq" IsChecked="{Binding FreqSource, Converter={x:Static vm:Conv.IntEquals}, ConverterParameter=0}" IsEnabled="{Binding CatOn}">Lue par CAT (chaque seconde)</RadioButton>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <RadioButton GroupName="freq" IsChecked="{Binding FreqSource, Converter={x:Static vm:Conv.IntEquals}, ConverterParameter=1}">Saisie</RadioButton>
+              <TextBox Classes="mono" Width="140" Text="{Binding ManualFreq}" IsEnabled="{Binding ManualFreqEnabled}" />
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="MHz" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Décodage">
+        <StackPanel Spacing="16" MaxWidth="560" HorizontalAlignment="Left">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="legend" Text="Protocoles cherchés" />
+            <CheckBox IsVisible="{Binding HasClassic}" IsChecked="{Binding SearchClassic}" Content="{Binding ClassicLabel}" />
+            <CheckBox IsChecked="{Binding SearchTwistS}">TWIST S</CheckBox>
+            <CheckBox IsChecked="{Binding SearchTwistL}">TWIST L</CheckBox>
+            <CheckBox IsVisible="{Binding HasPi4}" IsChecked="{Binding SearchPi4}">PI4</CheckBox>
+          </StackPanel>
+          <Grid ColumnDefinitions="*,*,*" ColumnSpacing="16">
+            <StackPanel Classes="field"><TextBlock Text="Centre (Hz)" /><TextBox Classes="mono" Text="{Binding CenterHz}" /></StackPanel>
+            <StackPanel Classes="field" Grid.Column="1"><TextBlock Text="Largeur ± (Hz)" /><TextBox Classes="mono" Text="{Binding WidthHz}" /></StackPanel>
+            <StackPanel Classes="field" Grid.Column="2"><TextBlock Text="Période des passes (s)" /><TextBox Classes="mono" Text="{Binding PassPeriod}" /></StackPanel>
+          </Grid>
+          <StackPanel Spacing="6">
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="16">
+              <StackPanel Classes="field"><TextBlock Text="PI4 : porteuse (Hz)" /><TextBox Classes="mono" Text="{Binding Pi4CenterHz}" IsEnabled="{Binding SearchPi4}" /></StackPanel>
+              <StackPanel Classes="field" Grid.Column="1"><TextBlock Text="PI4 : largeur ± (Hz)" /><TextBox Classes="mono" Text="{Binding Pi4WidthHz}" IsEnabled="{Binding SearchPi4}" /></StackPanel>
+            </Grid>
+            <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="12"
+                       Text="PI4 (OZ2M) : 4 tons espacés de 234 Hz, émis à la seconde 0 de la minute ; sa zone est la sienne (porteuse au sens OZ2M, d'habitude 800 Hz). Une balise qui alterne indicatif et « /locator » : le locator est rattaché à l'indicatif reçu juste avant sur la même fréquence." />
+          </StackPanel>
+          <StackPanel Classes="field">
+            <TextBlock Text="Étalement (Hz) — 0 pour une porteuse propre" />
+            <TextBox Classes="mono" Width="120" HorizontalAlignment="Left" Text="{Binding SpreadHz}" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="12"
+                       Text="Signaux étalés en fréquence (diffusion par la pluie ou les avions en hyperfréquences) : l'énergie de chaque chip est sommée sur cette largeur." />
+          </StackPanel>
+          <StackPanel Classes="field">
+            <TextBlock Text="Retard de la chaîne de réception (s)" />
+            <TextBox Classes="mono" Width="120" HorizontalAlignment="Left" Text="{Binding ChainDelay}" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="12"
+                       Text="Retard du signal avant la carte son (SDR, réseau, câble virtuel) : les heures de début sont reculées d'autant. Le retard de la carte son elle-même est déjà compté. Exemple : une trame partie à 14:14:00 et affichée 14:14:01 → 1." />
+          </StackPanel>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Balise">
+        <StackPanel Spacing="16" MaxWidth="560" HorizontalAlignment="Left">
+          <StackPanel Classes="field"><TextBlock Text="Durée maximale d'émission continue (s) — chien de garde" /><TextBox Classes="mono" Width="120" HorizontalAlignment="Left" Text="{Binding MaxTx}" /></StackPanel>
+          <StackPanel Classes="field"><TextBlock Text="Arrêt automatique du Tune (s)" /><TextBox Classes="mono" Width="120" HorizontalAlignment="Left" Text="{Binding TuneStop}" /></StackPanel>
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="La séquence d'étapes, la période et la seconde de départ se règlent dans la fenêtre Balise." />
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Rapports">
+        <ScrollViewer>
+        <StackPanel Spacing="16" MaxWidth="560" HorizontalAlignment="Left" Margin="0,0,12,0">
+          <CheckBox IsChecked="{Binding CsvLog}">Écrire le journal CSV des spots (un fichier par jour UTC)</CheckBox>
+          <StackPanel Classes="field">
+            <TextBlock Text="Dossier du journal" />
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Margin="8,0,0,0" Click="OnBrowse">Parcourir…</Button>
+              <TextBox Text="{Binding LogFolder}" />
+            </DockPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="12"
+                       Text="twist-AAAA-MM-JJ.csv, séparateur ; et point décimal : s'ouvre dans Excel ou LibreOffice (choisir ; si demandé)." />
+          </StackPanel>
+          <StackPanel Spacing="8">
+            <CheckBox IsChecked="{Binding KeepWav}">Conserver les WAV des passes qui ont décodé</CheckBox>
+            <StackPanel Orientation="Horizontal" Spacing="8" IsEnabled="{Binding KeepWav}">
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="pendant" />
+              <TextBox Classes="mono" Width="60" Text="{Binding WavDays}" />
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="jours, au plus" />
+              <TextBox Classes="mono" Width="80" Text="{Binding WavMaxMB}" />
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="Mo (les plus anciens partent d'abord)" />
+            </StackPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="12"
+                       Text="Les 45 s analysées (environ 1 Mo), dans le sous-dossier wav du dossier du journal, nommées par l'heure UTC et la fréquence de la radio. Fichier › Rejouer pour les relire." />
+          </StackPanel>
+          <!-- the recordings (Réception) -->
+          <StackPanel Spacing="8">
+            <TextBlock FontWeight="SemiBold" Text="Enregistrements" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="L'enregistrement continu s'arrête au bout de" />
+              <TextBox Classes="mono" Width="60" Text="{Binding RecordMaxMinutes}" />
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="min (0 : sans limite), ou s'il reste moins de" />
+              <TextBox Classes="mono" Width="60" Text="{Binding RecordMinFreeGB}" />
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="Go libres" />
+            </StackPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="12"
+                       Text="Réception › Garder les 2 dernières minutes (Ctrl+S) et Enregistrer en continu : à environ 12 kHz (1,4 Mo par minute), dans le sous-dossier enregistrements du dossier du journal, nommés par l'heure UTC et la fréquence de la radio. Ils ne sont jamais effacés par le programme." />
+          </StackPanel>
+          <CheckBox IsChecked="{Binding FbbOn}">Envoyer les spots à fbbspots (spots.f6fbb.org)</CheckBox>
+          <StackPanel Spacing="12" IsEnabled="{Binding FbbOn}">
+            <StackPanel Classes="field">
+              <TextBlock Text="Clé fbbspots de la station" />
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding FbbDiagnoseCommand}"
+                        ToolTip.Tip="Vérifie, étape par étape, que les spots peuvent partir : réglages, fréquence de la radio, envois, nom du serveur, HTTPS, heure du PC, clé">Diagnostic…</Button>
+                <Button DockPanel.Dock="Right" Margin="12,0,0,0" Click="OnRequestKey">Demander une clé…</Button>
+                <TextBox Classes="mono" PasswordChar="•" Text="{Binding FbbKey}" Watermark="{Binding FbbKeyHint}" />
+              </DockPanel>
+            </StackPanel>
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="La clé est envoyée par email à la demande (indicatif et locator de l'onglet Station). Les spots partent par HTTPS, dans l'ordre ; si le serveur est injoignable, ils attendent. Seuls les spots reçus en direct sont envoyés, avec le locator de la trame seulement. Sous Windows, la clé est chiffrée pour votre session." />
+          </StackPanel>
+          <CheckBox IsChecked="{Binding MqttOn}">Publier aussi les spots en MQTT (votre propre serveur, format de spyfbbclient)</CheckBox>
+          <StackPanel Spacing="12" IsEnabled="{Binding MqttOn}">
+            <Grid ColumnDefinitions="2*,*,Auto" ColumnSpacing="16">
+              <StackPanel Classes="field"><TextBlock Text="Serveur" /><TextBox Text="{Binding MqttHost}" /></StackPanel>
+              <StackPanel Classes="field" Grid.Column="1"><TextBlock Text="Port" /><TextBox Classes="mono" Text="{Binding MqttPort}" /></StackPanel>
+              <CheckBox Grid.Column="2" VerticalAlignment="Bottom" IsChecked="{Binding MqttTls}">TLS</CheckBox>
+            </Grid>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+              <StackPanel Classes="field"><TextBlock Text="Utilisateur" /><TextBox Text="{Binding MqttUser}" /></StackPanel>
+              <StackPanel Classes="field" Grid.Column="1"><TextBlock Text="Mot de passe" />
+                <TextBox PasswordChar="•" Text="{Binding MqttPassword}" Watermark="{Binding MqttPasswordHint}" /></StackPanel>
+            </Grid>
+            <StackPanel Classes="field"><TextBlock Text="Topic" /><TextBox Classes="mono" Text="{Binding MqttTopic}" /></StackPanel>
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="Message JSON de spyfbbclient (date de début, mode, sous-mode, fréquence RF en Hz, SNR, indicatif, locator, reporter et rgrid de la station). Seuls les spots reçus en direct sont publiés, pas ceux d'un fichier rejoué. Sous Windows, le mot de passe est chiffré pour votre session." />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Button Command="{Binding TestMqttCommand}">Tester la connexion</Button>
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="{Binding MqttTest}" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Interface">
+        <StackPanel Spacing="16" MaxWidth="560" HorizontalAlignment="Left">
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+            <StackPanel Classes="field"><TextBlock Text="Langue" /><ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" HorizontalAlignment="Stretch" /></StackPanel>
+            <StackPanel Classes="field" Grid.Column="1"><TextBlock Text="Thème" /><ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" HorizontalAlignment="Stretch" /></StackPanel>
+          </Grid>
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="La taille et la position de la fenêtre, l'état des volets et les réglages du waterfall sont mémorisés automatiquement. Le thème s'applique dès l'enregistrement ; « Comme Windows » suit le mode clair ou sombre du système. La langue s'applique au prochain démarrage du programme." />
+          <StackPanel Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <CheckBox IsChecked="{Binding SpotSound}" Content="Son à la réception d'un spot" />
+              <Button Command="{Binding TryChimeCommand}">Écouter</Button>
+            </StackPanel>
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="Deux notes brèves sur la sortie son par défaut du système, pour les spots reçus en direct (un seul son toutes les 3 s au plus). Ne pas l'activer si la sortie par défaut est celle qui va à l'émetteur : avec le VOX, le son le ferait passer en émission." />
+          </StackPanel>
+          <StackPanel Spacing="6">
+            <CheckBox IsChecked="{Binding CheckUpdates}" Content="Rechercher les nouvelles versions" />
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="Au démarrage puis une fois par jour, sur update.f6fbb.org (rien n'est envoyé que la demande elle-même). Un bandeau annonce une nouvelle version ; sous Windows, Installer la télécharge, la vérifie et l'installe, TWIST Console se fermant puis se relançant. Aide › Rechercher une mise à jour le fait à la demande." />
+          </StackPanel>
+          <!-- waterfall -->
+          <StackPanel Spacing="8">
+            <TextBlock FontWeight="SemiBold" Text="Waterfall" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBlock VerticalAlignment="Center" Text="Ligne horizontale pointillée toutes les" />
+              <ComboBox ItemsSource="{Binding MinuteNames}" SelectedIndex="{Binding WfMinuteIndex}" MinWidth="100" />
+            </StackPanel>
+            <CheckBox IsChecked="{Binding LiveFrequency}"
+                      Content="Trame en cours : afficher sa fréquence audio plutôt que « réception en cours »" />
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="La ligne marque le début de chaque période, en UTC (toutes les 5 min : hh:00, hh:05…), avec son heure à gauche. L'étiquette d'une trame en cours apparaît à la ligne où le signal a été repéré." />
+          </StackPanel>
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</Window>

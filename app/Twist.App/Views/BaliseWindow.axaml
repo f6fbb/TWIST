@@ -1,0 +1,178 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Twist.App.ViewModels"
+        xmlns:c="using:Twist.App.Controls"
+        x:Class="Twist.App.Views.BaliseWindow"
+        x:DataType="vm:BaliseViewModel"
+        Icon="/Assets/twist.ico" Title="TWIST Console — Balise" Width="760" Height="1000" MinWidth="620">
+
+  <ScrollViewer>
+    <StackPanel Spacing="16" Margin="0,0,0,16">
+      <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="16,10">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <TextBlock FontSize="15" FontWeight="SemiBold" Text="Balise" />
+          <TextBlock Classes="muted" VerticalAlignment="Center" Text="{Binding Station}" />
+        </StackPanel>
+      </Border>
+
+      <!-- transmission in progress -->
+      <Border Margin="16,0" Padding="16,14" CornerRadius="6" Background="{DynamicResource TxPanel}" BorderBrush="{DynamicResource TxLine}" BorderThickness="1"
+              IsVisible="{Binding Main.TxActive}">
+        <StackPanel Spacing="12">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Ellipse Width="12" Height="12" Fill="#FF5A52" VerticalAlignment="Center" />
+            <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TxFg}" Text="ÉMISSION EN COURS" />
+          </StackPanel>
+          <TextBlock Foreground="{DynamicResource TxFg}" TextWrapping="Wrap" Text="{Binding Main.TxTitle}" />
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Classes="mono" Foreground="{DynamicResource TxFg}" Text="{Binding Main.TxTimeText}" />
+            <TextBlock Classes="mono" Foreground="{DynamicResource TxFg}" Text="{Binding Main.TxStepText}" />
+          </DockPanel>
+          <ProgressBar Value="{Binding Main.TxProgress}" Maximum="100" Height="8" Foreground="{DynamicResource TxAccent}" Background="{DynamicResource TxTrack}" />
+          <Border Background="{DynamicResource TxPanelDark}" CornerRadius="4" Padding="8">
+            <c:ChipStrip Height="28" Chips="{Binding Main.TxChips}" Sent="{Binding Main.TxSent}" OnBrush="{DynamicResource TxAccent}" DimBrush="{DynamicResource TxDim}" />
+          </Border>
+          <WrapPanel ItemSpacing="24">
+            <TextBlock Foreground="{DynamicResource TxFg}" Text="{Binding Main.TxPttText}" />
+            <TextBlock Foreground="{DynamicResource TxFg}" Text="{Binding Main.TxInfoText}" />
+          </WrapPanel>
+          <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinHeight="56" Background="{DynamicResource TxStop}"
+                  Foreground="White" FontSize="18" FontWeight="SemiBold"
+                  Command="{Binding Main.StopTxCommand}">ARRÊT IMMÉDIAT · Échap</Button>
+        </StackPanel>
+      </Border>
+
+      <!-- waiting for the second of the cycle -->
+      <Border Classes="panel" Margin="16,0" Padding="16,10" IsVisible="{Binding Main.TxWaiting}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Command="{Binding Main.StopTxCommand}">Arrêter</Button>
+          <TextBlock VerticalAlignment="Center" Text="{Binding Main.TxTimeText, StringFormat='Émission du cycle : {0}'}" />
+        </DockPanel>
+      </Border>
+
+      <!-- tune -->
+      <Border Classes="panel" Margin="16,0" Padding="16,12">
+        <StackPanel Spacing="12">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Classes="pair" Margin="16,0,0,0">
+              <TextBlock Classes="muted" Text="Arrêt auto après" />
+              <NumericUpDown Value="{Binding TuneSeconds}" Minimum="5" Maximum="600" Increment="5" Width="110" FormatString="0" />
+              <TextBlock Text="s" />
+              <Button Classes="tune" Command="{Binding Main.ToggleTuneCommand}" Content="{Binding Main.TuneLabel}" />
+            </StackPanel>
+            <StackPanel Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="h2" Text="Réglage (Tune)" />
+              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Porteuse continue au ton d'émission, même PTT et même niveau" />
+            </StackPanel>
+          </DockPanel>
+          <StackPanel Spacing="2">
+            <StackPanel Classes="pair">
+              <TextBlock Classes="muted" Text="Niveau de sortie" />
+              <Slider Value="{Binding Main.TxLevel}" Minimum="1" Maximum="100" Width="260" />
+              <TextBlock Classes="mono" Width="110" Text="{Binding Main.TxLevelText}" />
+            </StackPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="12"
+                       Text="Se règle pendant le Tune, entendu tout de suite : monter jusqu'à ce que l'ALC commence à peine à agir. Le même niveau sert à la balise." />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- cycle -->
+      <Border Classes="panel" Margin="16,0" Padding="16">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="h2" Text="Cycle de balise" />
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+              <TextBlock Classes="muted" Text="durée totale" />
+              <TextBlock Classes="mono" Text="{Binding TotalText}" />
+            </StackPanel>
+            <TextBlock Classes="muted" Text="Séquence émise à chaque cycle" />
+          </DockPanel>
+          <ItemsControl ItemsSource="{Binding Steps}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Spacing="4" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:StepViewModel">
+                <Border Background="{DynamicResource Bg}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="4" Padding="10,4">
+                  <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="0">
+                      <Button Background="Transparent" ToolTip.Tip="Monter"
+                              Command="{Binding $parent[ItemsControl].((vm:BaliseViewModel)DataContext).MoveUpCommand}" CommandParameter="{Binding}">▲</Button>
+                      <Button Background="Transparent" ToolTip.Tip="Descendre"
+                              Command="{Binding $parent[ItemsControl].((vm:BaliseViewModel)DataContext).MoveDownCommand}" CommandParameter="{Binding}">▼</Button>
+                      <Button Background="Transparent" ToolTip.Tip="Retirer"
+                              Command="{Binding $parent[ItemsControl].((vm:BaliseViewModel)DataContext).RemoveCommand}" CommandParameter="{Binding}">✕</Button>
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Right" Classes="mono" Width="60" TextAlignment="Right" VerticalAlignment="Center" Text="{Binding DurationText}" />
+                    <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Margin="12,0" VerticalAlignment="Center" Text="{Binding PttText}" />
+                    <!-- (what the step sends on a line of its own: the controls of a
+                         PI4 or CW step leave no room beside them) -->
+                    <StackPanel Spacing="2">
+                      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock Classes="mono muted" Width="16" VerticalAlignment="Center" Text="{Binding Index}" />
+                        <TextBlock Width="70" VerticalAlignment="Center" Classes="proto" Classes.classic="{Binding IsClassicFrame}" Classes.pi4="{Binding IsPi4Frame}" Classes.carrier="{Binding IsCarrier}" Classes.pause="{Binding IsPause}" Text="{Binding KindText}" />
+                        <ComboBox IsVisible="{Binding IsFrame}" ItemsSource="{Binding ProtoNames}" SelectedIndex="{Binding ProtoIndex}" MinWidth="110" />
+                        <ComboBox IsVisible="{Binding IsPi4Frame}" ItemsSource="{Binding Pi4MessageNames}" SelectedIndex="{Binding Pi4MessageIndex}" MinWidth="150" />
+                        <NumericUpDown IsVisible="{Binding IsTimed}" Value="{Binding Seconds}" Minimum="0.5" Maximum="3600" Increment="1"
+                                       FormatString="0.#" Width="110" />
+                        <CheckBox IsVisible="{Binding IsPause}" IsChecked="{Binding PttHold}">PTT maintenu</CheckBox>
+                        <CheckBox IsVisible="{Binding HasFrequencyChoice}" IsChecked="{Binding AtPi4}">fréquence PI4</CheckBox>
+                      </StackPanel>
+                      <TextBlock Classes="mono muted" FontSize="12" Margin="26,0,0,2" TextTrimming="CharacterEllipsis" Text="{Binding Detail}" />
+                    </StackPanel>
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Command="{Binding AddFrameCommand}">+ Trame</Button>
+            <Button Command="{Binding AddCarrierCommand}">+ Porteuse</Button>
+            <Button Command="{Binding AddPauseCommand}">+ Pause</Button>
+            <Button Command="{Binding AddCwCommand}">+ CW</Button>
+            <Button Command="{Binding Pi4SequenceCommand}" Margin="16,0,0,0"
+                    ToolTip.Tip="Remplace la séquence par la minute d'une balise PI4 : trame PI4 à la seconde 0 (indicatif et /locator alternés d'une minute à l'autre), identification CW, porteuse ; toutes les minutes">Séquence PI4 (1 min)</Button>
+          </StackPanel>
+          <TextBlock Foreground="{DynamicResource ErrorText}" TextWrapping="Wrap" Text="{Binding Warning}" IsVisible="{Binding HasWarning}" />
+
+          <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="20" RowSpacing="12">
+            <StackPanel Grid.Column="0" Grid.Row="0" Spacing="4">
+              <TextBlock Classes="muted" Text="Toutes les (minutes, depuis 00:00 UTC)" />
+              <NumericUpDown Value="{Binding PeriodMin}" Minimum="1" Maximum="120" FormatString="0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Grid.Row="0" Spacing="4">
+              <TextBlock Classes="muted" Text="À la seconde (horloge PC synchronisée)" />
+              <NumericUpDown Value="{Binding StartSecond}" Minimum="0" Maximum="59" FormatString="0" />
+            </StackPanel>
+            <StackPanel Grid.Column="0" Grid.Row="1" Spacing="4">
+              <TextBlock Classes="muted" Text="Durée maximale d'émission continue (s)" />
+              <NumericUpDown Value="{Binding MaxSeconds}" Minimum="10" Maximum="3600" FormatString="0" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" Grid.Row="1" VerticalAlignment="Bottom" IsChecked="{Binding ReceiveBetween}">Recevoir entre deux émissions</CheckBox>
+            <StackPanel Grid.Column="0" Grid.Row="2" Spacing="4">
+              <TextBlock Classes="muted" Text="Fréquence PI4 nominale (Hz) : trames PI4, CW et porteuse « fréquence PI4 »"
+                         TextWrapping="Wrap" ToolTip.Tip="Au sens OZ2M : 117 Hz au-dessus du ton 0 ; les quatre tons occupent de f − 117 à f + 586 Hz" />
+              <NumericUpDown Value="{Binding Pi4ToneHz}" Minimum="200" Maximum="2500" Increment="10" FormatString="0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Grid.Row="2" Spacing="4">
+              <TextBlock Classes="muted" Text="Vitesse CW (mots/min)" />
+              <NumericUpDown Value="{Binding CwWpm}" Minimum="5" Maximum="40" Increment="1" FormatString="0" />
+            </StackPanel>
+          </Grid>
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+              <Button Command="{Binding Main.SendNowCommand}">Émettre une fois</Button>
+              <Button Classes="ok" Command="{Binding Main.StartCycleCommand}" IsVisible="{Binding !Main.CycleRunning}">Démarrer le cycle</Button>
+              <Button Classes="tx" Command="{Binding Main.StopCycleCommand}" IsVisible="{Binding Main.CycleRunning}">Arrêter le cycle</Button>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <TextBlock Classes="muted" Text="Prochaine émission :" />
+              <TextBlock Classes="mono" Text="{Binding Main.NextTx}" />
+            </StackPanel>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</Window>

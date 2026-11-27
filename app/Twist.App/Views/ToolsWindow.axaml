@@ -1,0 +1,119 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Twist.App.ViewModels"
+        xmlns:c="using:Twist.App.Controls"
+        x:Class="Twist.App.Views.ToolsWindow"
+        x:DataType="vm:ToolsViewModel"
+        Icon="/Assets/twist.ico" Title="TWIST Console — Outils" Width="900" Height="640" MinWidth="640" Background="{DynamicResource Panel}">
+
+  <Window.Styles>
+    <Style Selector="TabControl > TabItem">
+      <Setter Property="FontSize" Value="16" />
+    </Style>
+  </Window.Styles>
+
+  <TabControl x:Name="Tabs" Padding="24,16">
+    <TabItem Header="Chips d'une trame">
+      <StackPanel Spacing="18">
+        <WrapPanel ItemSpacing="16" LineSpacing="8">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="muted" Text="Trame" />
+            <ComboBox ItemsSource="{Binding FrameTypes}" SelectedItem="{Binding FrameType}" MinWidth="140" />
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="muted" Text="Indicatif" />
+            <TextBox Classes="mono" Width="120" Text="{Binding Call}" />
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="muted" Text="Locator (TWIST L)" />
+            <TextBox Classes="mono" Width="100" Text="{Binding Loc}" />
+          </StackPanel>
+          <TextBlock Classes="muted" VerticalAlignment="Bottom" Margin="0,0,0,8" Text="{Binding Info}" />
+        </WrapPanel>
+
+        <StackPanel Spacing="6">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Click="OnCopyBits">Copier</Button>
+            <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" Text="Chips (0 = porteuse coupée, 1 = porteuse)" />
+          </DockPanel>
+          <Border Background="{DynamicResource Bg}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="4" Padding="12,10">
+            <SelectableTextBlock FontFamily="{DynamicResource Mono}" FontSize="12" TextWrapping="Wrap" Text="{Binding Bits}" />
+          </Border>
+        </StackPanel>
+
+        <StackPanel Spacing="6">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Click="OnCopyHex">Copier</Button>
+            <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" Text="Hexadécimal (pour FbBalise)" />
+          </DockPanel>
+          <Border Background="{DynamicResource Bg}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="4" Padding="12,10">
+            <SelectableTextBlock FontFamily="{DynamicResource Mono}" FontSize="13" Foreground="{DynamicResource Amber}" TextWrapping="Wrap" Text="{Binding Hex}" />
+          </Border>
+        </StackPanel>
+
+        <StackPanel Spacing="6">
+          <TextBlock FontWeight="SemiBold" Text="Aperçu de la manipulation" />
+          <Border Background="{DynamicResource Bg}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="4" Padding="8,6">
+            <c:ChipStrip Height="28" Chips="{Binding Chips}" />
+          </Border>
+        </StackPanel>
+      </StackPanel>
+    </TabItem>
+
+    <TabItem Header="WAV de test">
+      <StackPanel Spacing="16" MaxWidth="760" HorizontalAlignment="Left">
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Une trame telle que l'émetteur l'envoie (OOK avec rampes de 5 ms, ou PI4), dans un bruit blanc au SNR voulu, pour vérifier un récepteur, rejouer dans TWIST Console (Fichier › Rejouer un fichier WAV…) ou dans un émetteur. Le fichier est relu par le décodeur dès qu'il est écrit." />
+        <WrapPanel ItemSpacing="16" LineSpacing="12">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="muted" Text="Trame" />
+            <ComboBox ItemsSource="{Binding WavProtos}" SelectedItem="{Binding WavProto}" MinWidth="130" />
+          </StackPanel>
+          <StackPanel Spacing="4" IsVisible="{Binding WavIsPi4}">
+            <TextBlock Classes="muted" Text="Message PI4" />
+            <ComboBox ItemsSource="{Binding WavPi4Messages}" SelectedIndex="{Binding WavPi4Message}" MinWidth="120" />
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="muted" Text="Indicatif" />
+            <TextBox Classes="mono" Width="120" Text="{Binding WavCall}" />
+          </StackPanel>
+          <StackPanel Spacing="4" IsVisible="{Binding WavNeedsLoc}">
+            <TextBlock Classes="muted" Text="Locator" />
+            <TextBox Classes="mono" Width="100" Text="{Binding WavLoc}" />
+          </StackPanel>
+        </WrapPanel>
+        <WrapPanel ItemSpacing="16" LineSpacing="12">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="muted" Text="Fréquence audio (Hz)" ToolTip.Tip="OOK : le ton ; PI4 : la fréquence nominale (ton 0 + 117 Hz)" />
+            <NumericUpDown Value="{Binding WavFreq}" Minimum="200" Maximum="4000" Increment="10" FormatString="0" Width="130" />
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="muted" Text="SNR (dB dans 2500 Hz)"
+                       ToolTip.Tip="Le SNR que la liste des spots affichera : puissance moyenne sur la trame, dans 2500 Hz (une trame OOK, porteuse sur la moitié des chips environ, est à 3 dB sous sa porteuse)" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <CheckBox IsChecked="{Binding WavNoise}">bruit</CheckBox>
+              <NumericUpDown Value="{Binding WavSnr}" IsEnabled="{Binding WavNoise}" Minimum="-40" Maximum="40" Increment="1" FormatString="0.#" Width="120" />
+            </StackPanel>
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="muted" Text="Avant la trame (s)" />
+            <NumericUpDown Value="{Binding WavBefore}" Minimum="0" Maximum="60" Increment="0.5" FormatString="0.##" Width="120" />
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="muted" Text="Après (s)" />
+            <NumericUpDown Value="{Binding WavAfter}" Minimum="0" Maximum="60" Increment="0.5" FormatString="0.##" Width="120" />
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="muted" Text="Échantillonnage (Hz)" />
+            <ComboBox ItemsSource="{Binding WavRates}" SelectedItem="{Binding WavRate}" MinWidth="110" />
+          </StackPanel>
+        </WrapPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="ok" Click="OnWriteWav" IsEnabled="{Binding !WavBusy}">Enregistrer le WAV…</Button>
+          <TextBlock Classes="muted" VerticalAlignment="Center" Text="{Binding WavInfo}" />
+        </StackPanel>
+        <SelectableTextBlock Classes="mono" TextWrapping="Wrap" Text="{Binding WavResult}" />
+      </StackPanel>
+    </TabItem>
+  </TabControl>
+</Window>

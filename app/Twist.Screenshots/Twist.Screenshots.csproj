@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Renders the windows of the application to PNG files without a
+    screen (Avalonia headless + Skia): to look at the interface from a
+    build machine or the CI.
+      dotnet run (in app/Twist.Screenshots) OUTPUT_FOLDER
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Twist.App/Twist.App.csproj" />
+    <PackageReference Include="Avalonia.Headless" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Skia" Version="11.3.22" />
+  </ItemGroup>
+
+</Project>

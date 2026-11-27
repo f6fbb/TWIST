@@ -1,0 +1,63 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Twist.App.Views.AboutWindow"
+        Icon="/Assets/twist.ico" Title="À propos de TWIST Console" Width="520" SizeToContent="Height"
+        CanResize="False" WindowStartupLocation="CenterOwner" Background="{DynamicResource Panel}">
+  <StackPanel Margin="24" Spacing="14">
+    <StackPanel Orientation="Horizontal" Spacing="16">
+      <Image Source="/Assets/twist.ico" Width="64" Height="64" />
+      <StackPanel VerticalAlignment="Center" Spacing="4">
+        <TextBlock FontSize="22" FontWeight="SemiBold" Text="TWIST Console" />
+        <TextBlock x:Name="VersionText" Classes="muted" />
+      </StackPanel>
+    </StackPanel>
+    <TextBlock x:Name="DescText" TextWrapping="Wrap" />
+    <TextBlock x:Name="EngineText" Classes="mono muted" FontSize="12" TextWrapping="Wrap" />
+    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+               Text="Logiciel libre sous licence GNU GPL version 3 (fichier LICENSE). Hamlib (rigctld) est distribué sous licence LGPL, PortAudio et FFTW sous leurs licences respectives." />
+    <!-- who the work comes from (CREDITS.md, installed beside the program) -->
+    <Expander x:Name="CreditsBox" Header="Crédits" HorizontalAlignment="Stretch">
+      <ScrollViewer MaxHeight="320">
+        <StackPanel Spacing="3" Margin="0,0,8,0">
+          <StackPanel.Styles>
+            <Style Selector="TextBlock">
+              <Setter Property="FontSize" Value="12" />
+              <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+            <Style Selector="TextBlock.h">
+              <Setter Property="FontWeight" Value="SemiBold" />
+              <Setter Property="Margin" Value="0,8,0,1" />
+            </Style>
+          </StackPanel.Styles>
+          <TextBlock Classes="h" Margin="0,0,0,1" Text="TWIST" />
+          <TextBlock Text="Protocole TWIST, récepteur et application : F6FBB (Jean-Paul Roubelat), avec Claude (Anthropic), 2026." />
+          <TextBlock Text="Décodeur PI4, lecture WAV et I/Q : projet pi4d (F6FBB)." />
+          <TextBlock Text="Essais sur l'air : F1HDI et les premiers opérateurs de balises." />
+
+          <TextBlock Classes="h" Text="Protocoles et algorithmes" />
+          <TextBlock x:Name="ClassicCredit" />
+          <TextBlock Text="Codage de la trame classique : portage des implémentations libres (GPL) de F4GCB, 7L1RLL et F5OEO (rpitx)." />
+          <TextBlock Text="PI4 (PharusIgnis4) : spécifié par Bo Hansen, OZ2M." />
+          <TextBlock Text="Code convolutif et décodage du PI4 : JT4, de Joe Taylor, K1JT, et l'équipe WSJT-X." />
+          <TextBlock Text="Décodeur de Fano : Phil Karn, KA9Q (1994), modifié par K1JT ; repris de WSJT-X (GPL v3)." />
+          <TextBlock Text="Code LDPC de TWIST : algorithme PEG de X.-Y. Hu, E. Eleftheriou et D.-M. Arnold (2005)." />
+          <TextBlock Text="Références : D. Estévez, « Testing Opera sensitivity with GNU Radio » (2016) ; sigidwiki." />
+
+          <TextBlock Classes="h" Text="Bibliothèques" />
+          <TextBlock Text="FFTW3 : M. Frigo, S. G. Johnson (GPL v2 ou ultérieure)." />
+          <TextBlock Text="PortAudio : Ross Bencina, Phil Burk et contributeurs (licence de type MIT)." />
+          <TextBlock Text="Hamlib (rigctld, rigctl) : le projet Hamlib (LGPL v2.1, programmes GPL v2)." />
+          <TextBlock Text="Avalonia, CommunityToolkit.Mvvm, MQTTnet, .NET : licence MIT. Police Inter : Rasmus Andersson (SIL OFL 1.1)." />
+
+          <TextBlock Classes="h" Text="Données" />
+          <TextBlock Text="Préfixes et entités DXCC : Jim Reisert, AD1C (country-files.com), par le paquet @ham2k/lib-country-files de Sebastian Delmont." />
+          <TextBlock Text="Contours des pays : Natural Earth (domaine public), par world-atlas de Mike Bostock." />
+
+          <TextBlock Classes="muted" Margin="0,8,0,0" Text="Détail et licences : fichier CREDITS.md, à côté du programme." />
+        </StackPanel>
+      </ScrollViewer>
+    </Expander>
+    <TextBlock x:Name="PathsText" Classes="mono muted" FontSize="11" TextWrapping="Wrap" />
+    <Button HorizontalAlignment="Right" Click="OnClose">Fermer</Button>
+  </StackPanel>
+</Window>

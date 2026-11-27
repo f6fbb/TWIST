@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>              <string>TWIST Console</string>
+  <key>CFBundleDisplayName</key>       <string>TWIST Console</string>
+  <key>CFBundleIdentifier</key>        <string>org.f6fbb.twist-console</string>
+  <key>CFBundleVersion</key>           <string>@VERSION@</string>
+  <key>CFBundleShortVersionString</key><string>@VERSION@</string>
+  <key>CFBundlePackageType</key>       <string>APPL</string>
+  <key>CFBundleExecutable</key>        <string>Twist</string>
+  <key>CFBundleIconFile</key>          <string>twist</string>
+  <key>LSMinimumSystemVersion</key>    <string>10.15</string>
+  <key>LSArchitecturePriority</key>    <array><string>x86_64</string></array>
+  <key>NSHighResolutionCapable</key>   <true/>
+  <key>NSPrincipalClass</key>          <string>NSApplication</string>
+  <!-- asked by macOS the first time the program opens the audio input -->
+  <key>NSMicrophoneUsageDescription</key>
+  <string>TWIST Console décode les balises reçues par la sortie audio du récepteur, branchée sur une entrée de la carte son.</string>
+</dict>
+</plist>

@@ -1,0 +1,279 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Twist.App.App"
+             RequestedThemeVariant="Dark">
+
+  <!-- Colours of the mockup, for the dark and the light theme (Réglages ›
+       Interface); every view takes them as DynamicResource, so that a
+       change of theme applies at once. The waterfall stays dark in both,
+       as in every waterfall display. -->
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="Bg" Color="#0F1419" />
+          <SolidColorBrush x:Key="Panel" Color="#161D24" />
+          <SolidColorBrush x:Key="Strip" Color="#121920" />
+          <SolidColorBrush x:Key="Line" Color="#27313B" />
+          <SolidColorBrush x:Key="Text" Color="#E6EBF0" />
+          <SolidColorBrush x:Key="Muted" Color="#93A1AF" />
+          <SolidColorBrush x:Key="Accent" Color="#5CC8E0" />
+          <SolidColorBrush x:Key="AccentBg" Color="#10232B" />
+          <SolidColorBrush x:Key="Amber" Color="#F2C46B" />
+          <SolidColorBrush x:Key="AmberBg" Color="#2A2412" />
+          <SolidColorBrush x:Key="AmberLine" Color="#6B5420" />
+          <SolidColorBrush x:Key="Classic" Color="#8ADBEC" />
+          <SolidColorBrush x:Key="Pi4" Color="#A8D98A" />
+          <SolidColorBrush x:Key="TxFg" Color="#FFD9D6" />
+          <SolidColorBrush x:Key="TxBg" Color="#3A1616" />
+          <SolidColorBrush x:Key="TxLine" Color="#8A2B27" />
+          <SolidColorBrush x:Key="TxStop" Color="#C62828" />
+          <SolidColorBrush x:Key="TuneFg" Color="#FFD9B0" />
+          <SolidColorBrush x:Key="TuneBg" Color="#2A1D10" />
+          <SolidColorBrush x:Key="TuneLine" Color="#8A5A27" />
+          <SolidColorBrush x:Key="OkFg" Color="#BFF0D2" />
+          <SolidColorBrush x:Key="OkBg" Color="#1D3B2A" />
+          <SolidColorBrush x:Key="OkLine" Color="#2F6B47" />
+          <SolidColorBrush x:Key="Good" Color="#4FBF7A" />
+          <SolidColorBrush x:Key="GridLine" Color="#1F2830" />
+          <SolidColorBrush x:Key="HeadHover" Color="#1C252E" />
+          <SolidColorBrush x:Key="JournalText" Color="#B6C2CD" />
+          <SolidColorBrush x:Key="ErrorText" Color="#F28B6B" />
+          <SolidColorBrush x:Key="TxPanel" Color="#2A1213" />
+          <SolidColorBrush x:Key="TxPanelDark" Color="#1B0C0D" />
+          <SolidColorBrush x:Key="TxTrack" Color="#3D1C1C" />
+          <SolidColorBrush x:Key="TxAccent" Color="#FF7A72" />
+          <SolidColorBrush x:Key="TxDim" Color="#4A2224" />
+          <SolidColorBrush x:Key="BadgeIdleBg" Color="#232B33" />
+          <SolidColorBrush x:Key="BadgeIdleFg" Color="#93A1AF" />
+          <SolidColorBrush x:Key="BadgeCycleBg" Color="#173322" />
+          <SolidColorBrush x:Key="BadgeCycleFg" Color="#7FD69B" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="Bg" Color="#F5F7F9" />
+          <SolidColorBrush x:Key="Panel" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="Strip" Color="#E8EDF1" />
+          <SolidColorBrush x:Key="Line" Color="#C6D0D9" />
+          <SolidColorBrush x:Key="Text" Color="#10171E" />
+          <SolidColorBrush x:Key="Muted" Color="#424E5A" />
+          <SolidColorBrush x:Key="Accent" Color="#0A6378" />
+          <SolidColorBrush x:Key="AccentBg" Color="#E1F2F6" />
+          <SolidColorBrush x:Key="Amber" Color="#7A4B00" />
+          <SolidColorBrush x:Key="AmberBg" Color="#FFF1D2" />
+          <SolidColorBrush x:Key="AmberLine" Color="#D8AE58" />
+          <SolidColorBrush x:Key="Classic" Color="#08596B" />
+          <SolidColorBrush x:Key="Pi4" Color="#3D7A1F" />
+          <SolidColorBrush x:Key="TxFg" Color="#7E1414" />
+          <SolidColorBrush x:Key="TxBg" Color="#FCE2DF" />
+          <SolidColorBrush x:Key="TxLine" Color="#DE9A93" />
+          <SolidColorBrush x:Key="TxStop" Color="#C62828" />
+          <SolidColorBrush x:Key="TuneFg" Color="#7A4300" />
+          <SolidColorBrush x:Key="TuneBg" Color="#FFE9CF" />
+          <SolidColorBrush x:Key="TuneLine" Color="#DDA35F" />
+          <SolidColorBrush x:Key="OkFg" Color="#165B34" />
+          <SolidColorBrush x:Key="OkBg" Color="#DCF2E4" />
+          <SolidColorBrush x:Key="OkLine" Color="#79C197" />
+          <SolidColorBrush x:Key="Good" Color="#2E8B57" />
+          <SolidColorBrush x:Key="GridLine" Color="#DCE3E9" />
+          <SolidColorBrush x:Key="HeadHover" Color="#E6EBF0" />
+          <SolidColorBrush x:Key="JournalText" Color="#1F2A34" />
+          <SolidColorBrush x:Key="ErrorText" Color="#B3361B" />
+          <SolidColorBrush x:Key="TxPanel" Color="#FDECEA" />
+          <SolidColorBrush x:Key="TxPanelDark" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="TxTrack" Color="#F5D0CC" />
+          <SolidColorBrush x:Key="TxAccent" Color="#D2372C" />
+          <SolidColorBrush x:Key="TxDim" Color="#F1C9C5" />
+          <SolidColorBrush x:Key="BadgeIdleBg" Color="#E3E8ED" />
+          <SolidColorBrush x:Key="BadgeIdleFg" Color="#3C4752" />
+          <SolidColorBrush x:Key="BadgeCycleBg" Color="#DCF2E4" />
+          <SolidColorBrush x:Key="BadgeCycleFg" Color="#165B34" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+      <FontFamily x:Key="Mono">Cascadia Mono, Consolas, DejaVu Sans Mono, Courier New, monospace</FontFamily>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+
+    <Style Selector="Window">
+      <Setter Property="Background" Value="{DynamicResource Bg}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <!-- the UTC clock of the main window -->
+    <Style Selector="TextBlock.clock">
+      <Setter Property="FontSize" Value="28" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <!-- a button that is only its content (the beacon badge) -->
+    <Style Selector="Button.plain">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.plain:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="TextBlock.mono">
+      <Setter Property="FontFamily" Value="{DynamicResource Mono}" />
+    </Style>
+    <Style Selector="TextBox.mono">
+      <Setter Property="FontFamily" Value="{DynamicResource Mono}" />
+    </Style>
+    <Style Selector="TextBlock.h2">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <!-- a panel of the main window -->
+    <Style Selector="Border.panel">
+      <Setter Property="Background" Value="{DynamicResource Panel}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <!-- a label kept with its control: wraps as one block -->
+    <Style Selector="StackPanel.pair">
+      <Setter Property="Orientation" Value="Horizontal" />
+      <Setter Property="Spacing" Value="8" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="StackPanel.pair > TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ToggleButton.chip">
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="12,4" />
+    </Style>
+    <Style Selector="ToggleButton.chip:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AmberBg}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AmberLine}" />
+      <Setter Property="Foreground" Value="{DynamicResource Amber}" />
+    </Style>
+    <Style Selector="Button.tx">
+      <Setter Property="Background" Value="{DynamicResource TxBg}" />
+      <Setter Property="Foreground" Value="{DynamicResource TxFg}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TxLine}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.tune">
+      <Setter Property="Background" Value="{DynamicResource TuneBg}" />
+      <Setter Property="Foreground" Value="{DynamicResource TuneFg}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TuneLine}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.ok">
+      <Setter Property="Background" Value="{DynamicResource OkBg}" />
+      <Setter Property="Foreground" Value="{DynamicResource OkFg}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource OkLine}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ToggleButton.ok:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource OkBg}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource OkLine}" />
+      <Setter Property="Foreground" Value="{DynamicResource OkFg}" />
+    </Style>
+    <!-- panel headers (waterfall, journal): a toggle that looks like a title -->
+    <Style Selector="ToggleButton.head">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ToggleButton.head:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="ToggleButton.head:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource HeadHover}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <!-- detach / put back a part (an icon: two windows) -->
+    <Style Selector="Button.detach">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="5" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.detach Path">
+      <Setter Property="Stroke" Value="{DynamicResource Muted}" />
+      <Setter Property="StrokeThickness" Value="1.3" />
+      <Setter Property="Width" Value="14" />
+      <Setter Property="Height" Value="14" />
+    </Style>
+    <Style Selector="Button.detach:pointerover Path">
+      <Setter Property="Stroke" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="Button.link">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="DataGrid">
+      <Setter Property="Background" Value="{DynamicResource Panel}" />
+      <Setter Property="GridLinesVisibility" Value="Horizontal" />
+      <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource GridLine}" />
+    </Style>
+    <!-- protocol names (spots, beacon steps): amber TWIST, cyan classic, green PI4 -->
+    <Style Selector="TextBlock.proto">
+      <Setter Property="Foreground" Value="{DynamicResource Amber}" />
+    </Style>
+    <Style Selector="TextBlock.proto.classic">
+      <Setter Property="Foreground" Value="{DynamicResource Classic}" />
+    </Style>
+    <Style Selector="TextBlock.proto.pi4">
+      <Setter Property="Foreground" Value="{DynamicResource Pi4}" />
+    </Style>
+    <Style Selector="TextBlock.proto.carrier">
+      <Setter Property="Foreground" Value="{DynamicResource TuneFg}" />
+    </Style>
+    <Style Selector="TextBlock.proto.pause">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <!-- the beacon badge of the status strip -->
+    <Style Selector="Border.badge">
+      <Setter Property="Background" Value="{DynamicResource BadgeIdleBg}" />
+    </Style>
+    <Style Selector="Border.badge > TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource BadgeIdleFg}" />
+    </Style>
+    <Style Selector="Border.badge.cycle">
+      <Setter Property="Background" Value="{DynamicResource BadgeCycleBg}" />
+    </Style>
+    <Style Selector="Border.badge.cycle > TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource BadgeCycleFg}" />
+    </Style>
+    <Style Selector="Border.badge.tx">
+      <Setter Property="Background" Value="{DynamicResource TxStop}" />
+    </Style>
+    <Style Selector="Border.badge.tx > TextBlock">
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="DataGridColumnHeader">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <!-- a locator found elsewhere than in the frame (and its distance, azimuth) -->
+    <!-- a callsign that may be a ghost (CallCheck): the whole line greyed -->
+    <Style Selector="DataGridRow.doubt">
+      <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="TextBlock.cell.guessed">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="FontStyle" Value="Italic" />
+    </Style>
+    <!-- the callsign: semi-bold, except a guessed one (a PI4 locator's),
+         written like a guessed locator -->
+    <Style Selector="TextBlock.cell.call">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.cell.call.guessed">
+      <Setter Property="FontWeight" Value="Normal" />
+    </Style>
+    <Style Selector="DataGridCell">
+      <Setter Property="FontFamily" Value="{DynamicResource Mono}" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+  </Application.Styles>
+</Application>

@@ -1,0 +1,71 @@
+name: macos
+
+# TWIST Console for Intel Macs, macOS 10.15 (Catalina) or later: the
+# libraries built from their sources for 10.15 (cached), the engine and
+# its tests, the application and its tests, TWIST Console.app in a .dmg and
+# a .zip, then the application started once to see that it opens.
+# By hand only (Actions › macos › Run workflow): on a private repository
+# a macOS minute counts ten.
+on:
+  workflow_dispatch:
+
+# Each step writes its output to logs/<step>.log too; on failure, the end
+# of those logs is given as annotations (readable without the log).
+jobs:
+  mac-intel:
+    runs-on: macos-15-intel
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: macos-x64-10.15-${{ hashFiles('installer/macos/build-deps.sh') }}
+      - name: FFTW, PortAudio, Hamlib (static, x86_64, macOS 10.15)
+        run: mkdir -p logs; set -o pipefail; installer/macos/build-deps.sh deps 2>&1 | tee logs/deps.log
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: TWIST Console.app (.dmg, .zip)
+        run: |
+          python3 -m pip install --quiet --user --break-system-packages pillow || python3 -m pip install --quiet --user pillow
+          set -o pipefail; installer/macos/build-app.sh deps 2>&1 | tee logs/app.log
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          retention-days: 3
+          name: twist-console-mac-intel
+          path: |
+            dist/*.dmg
+            dist/*.zip
+      - name: Engine tests (make test)
+        run: set -o pipefail; installer/macos/make.sh deps test 2>&1 | tee logs/make-test.log
+      - name: Application tests (dotnet test)
+        run: set -o pipefail; dotnet test app/Twist.Tests -c Release -nologo 2>&1 | tee logs/dotnet-test.log
+      - name: Hamlib of the application
+        run: |
+          H="dist/TWIST Console.app/Contents/MacOS/hamlib"
+          otool -L "$H/rigctld"
+          "$H/rigctl" -l | grep -c RIG_MODEL_
+          "$H/rigctld" -m 1 -t 4534 -T 127.0.0.1 & sleep 2
+          printf 'f\nT 1\nT 0\nq\n' | nc -w 3 127.0.0.1 4534 | tee rig.txt
+          kill %1 || true
+          grep -q "RPRT 0" rig.txt
+      - name: The application opens (15 s, then closed)
+        run: |
+          open "dist/TWIST Console.app"
+          sleep 15
+          pgrep -fl "TWIST Console.app/Contents/MacOS/Twist"
+          log=$(find ~/Library ~/.local -name twist-error.log 2>/dev/null | head -1)
+          echo "== $log"; cat "$log"
+          ! grep -q fatal "$log"
+          pkill -f "TWIST Console.app/Contents/MacOS/Twist" || true
+      - name: Report the failure
+        if: failure()
+        run: |
+          for f in logs/*.log; do
+            [ -f "$f" ] || continue
+            echo "::error title=$(basename $f)::$(grep -v '^\s*$' "$f" | tail -n 40 | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk '{printf "%s%%0A", $0}')"
+          done

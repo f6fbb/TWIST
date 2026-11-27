@@ -1,0 +1,31 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Twist.App.ViewModels"
+        x:Class="Twist.App.Views.UpdateWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/twist.ico" Title="Mise à jour de TWIST Console" Width="620" SizeToContent="Height" MaxHeight="680"
+        CanResize="False" WindowStartupLocation="CenterOwner" Background="{DynamicResource Panel}">
+  <!-- a new version (its changes, Installer, Plus tard), or the answer of
+       Aide › Rechercher une mise à jour (up to date, or the server's error) -->
+  <DockPanel Margin="24">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,18,0,0">
+      <Button x:Name="InstallButton" Classes="ok" Command="{Binding InstallUpdateCommand}" IsEnabled="{Binding !UpdateBusy}"
+              Content="{Binding UpdateButtonText}" />
+      <Button x:Name="LaterButton" Click="OnClose">Plus tard</Button>
+      <Button x:Name="OkButton" Classes="ok" Click="OnClose">OK</Button>
+    </StackPanel>
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="16">
+      <Image Source="/Assets/twist.ico" Width="48" Height="48" VerticalAlignment="Top" />
+      <StackPanel Spacing="6" VerticalAlignment="Center" MaxWidth="500">
+        <TextBlock x:Name="Head" Classes="h2" FontSize="18" />
+        <TextBlock x:Name="Body" TextWrapping="Wrap" Text="{Binding UpdateText}" />
+      </StackPanel>
+    </StackPanel>
+    <Border x:Name="NotesBox" Margin="0,16,0,0" Background="{DynamicResource Bg}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="1" CornerRadius="4" Padding="12,10">
+      <ScrollViewer MaxHeight="360">
+        <SelectableTextBlock TextWrapping="Wrap" FontSize="13" Text="{Binding UpdateNotes}" />
+      </ScrollViewer>
+    </Border>
+  </DockPanel>
+</Window>

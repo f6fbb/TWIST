@@ -1,0 +1,36 @@
+# build outputs
+build/
+out/
+/twistd
+/operad
+/pi4d
+/twistenc
+/twistlive
+*.o
+*.exe
+*.dll
+*.a
+# test programs (built by make tests / make test)
+tests/*
+!tests/*.c
+!tests/*.h
+!tests/*.sh
+!tests/real/
+firmware/test_twist_encoder
+# scratch
+*.wav
+!tests/real/*.wav
+.vscode/
+.vs/
+# the libraries
+/libtwcore.*
+/libtwist.*
+/libopera.*
+/libpi4.*
+# C# build outputs
+bindings/csharp/**/bin/
+bindings/csharp/**/obj/
+
+# .NET build outputs
+app/**/bin/
+app/**/obj/

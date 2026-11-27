@@ -1,0 +1,406 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Twist.App.ViewModels"
+        xmlns:c="using:Twist.App.Controls"
+        x:Class="Twist.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/twist.ico" Title="TWIST Console" Width="1440" Height="900" MinWidth="900" MinHeight="600">
+
+  <DockPanel>
+
+    <!-- menu -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Classes="muted" Margin="12,0" VerticalAlignment="Center" Text="{Binding ProfileText}" />
+        <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding ProfileNames}" SelectedItem="{Binding CurrentProfile}"
+                  IsVisible="{Binding SeveralProfiles}" MinWidth="140" Margin="0,2" VerticalAlignment="Center"
+                  ToolTip.Tip="Profil : carte son, radio, décodage et balise (Fichier › Réglages pour les modifier)" />
+        <Menu>
+          <MenuItem Header="_Fichier">
+            <MenuItem Header="Rejouer un fichier WAV…" Command="{Binding OpenWavFileCommand}" />
+            <MenuItem Header="Dossier des WAV conservés" Command="{Binding OpenWavFolderCommand}" />
+            <Separator />
+            <MenuItem Header="Réglages…" Click="OnSettings" />
+            <Separator />
+            <MenuItem Header="Quitter" Click="OnQuit" />
+          </MenuItem>
+          <MenuItem Header="_Réception">
+            <MenuItem Header="{Binding ClassicLabel}" IsVisible="{Binding HasClassic}" ToggleType="CheckBox" IsChecked="{Binding SearchClassic, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="classic" />
+            <MenuItem Header="TWIST S" ToggleType="CheckBox" IsChecked="{Binding SearchTwistS, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="twistS" />
+            <MenuItem Header="TWIST L" ToggleType="CheckBox" IsChecked="{Binding SearchTwistL, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="twistL" />
+            <MenuItem Header="PI4" IsVisible="{Binding HasPi4}" ToggleType="CheckBox" IsChecked="{Binding SearchPi4, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="pi4" />
+            <Separator />
+            <MenuItem Header="Décodage actif" ToggleType="CheckBox" IsChecked="{Binding DecodingActive, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="decoding" />
+            <Separator />
+            <MenuItem Header="Garder les 2 dernières minutes" InputGesture="Ctrl+S" Command="{Binding SaveLastCommand}" />
+            <MenuItem Header="{Binding RecordMenuText}" Command="{Binding ToggleRecordingCommand}" />
+            <MenuItem Header="Dossier des enregistrements" Command="{Binding OpenRecordingsFolderCommand}" />
+            <Separator />
+            <MenuItem Header="Vider la liste des spots" Command="{Binding ClearSpotsCommand}" />
+          </MenuItem>
+          <MenuItem Header="É_mission">
+            <MenuItem Header="Balise…" Click="OnBalise" />
+            <MenuItem Header="Tune" Command="{Binding ToggleTuneCommand}" />
+            <MenuItem Header="Émettre la séquence une fois" Command="{Binding SendNowCommand}" />
+            <MenuItem Header="Arrêt immédiat" Command="{Binding StopTxCommand}" InputGesture="Escape" />
+          </MenuItem>
+          <MenuItem Header="_Outils">
+            <MenuItem Header="Chips d'une trame…" Click="OnTools" />
+            <MenuItem Header="WAV de test…" Click="OnToolsWav" />
+          </MenuItem>
+          <!-- check marks: a click does not change IsChecked by itself, the
+               command changes the value and the mark follows -->
+          <MenuItem Header="_Affichage">
+            <MenuItem Header="Waterfall" ToggleType="CheckBox" IsChecked="{Binding WaterfallOpen, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="waterfall" InputGesture="F2" />
+            <MenuItem Header="Journal" ToggleType="CheckBox" IsChecked="{Binding JournalOpen, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="journal" InputGesture="F3" />
+            <MenuItem Header="Informations techniques" ToggleType="CheckBox" IsChecked="{Binding ShowTech, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="tech" />
+            <Separator />
+            <MenuItem Header="Waterfall dans une fenêtre séparée" ToggleType="CheckBox" IsChecked="{Binding WaterfallDetached, Mode=OneWay}" Command="{Binding ToggleDetachCommand}" CommandParameter="waterfall" />
+            <MenuItem Header="Spots dans une fenêtre séparée" ToggleType="CheckBox" IsChecked="{Binding SpotsDetached, Mode=OneWay}" Command="{Binding ToggleDetachCommand}" CommandParameter="spots" />
+            <MenuItem Header="Journal dans une fenêtre séparée" ToggleType="CheckBox" IsChecked="{Binding JournalDetached, Mode=OneWay}" Command="{Binding ToggleDetachCommand}" CommandParameter="journal" />
+          </MenuItem>
+          <MenuItem Header="Aid_e">
+            <MenuItem Header="Créer un rapport pour les testeurs…" Command="{Binding CreateReportCommand}" />
+            <MenuItem Header="Guide de l'utilisateur" Click="OnUserGuide" />
+            <MenuItem Header="Guide des testeurs" Click="OnGuide" />
+            <Separator />
+            <MenuItem Header="Rechercher une mise à jour" Command="{Binding CheckUpdateNowCommand}" />
+            <MenuItem Header="Diagnostic fbbspots…" Command="{Binding FbbDiagCommand}" />
+            <MenuItem Header="À propos de TWIST Console" Click="OnAbout" />
+          </MenuItem>
+        </Menu>
+      </DockPanel>
+    </Border>
+
+    <!-- the essentials, on one line: the input level, the decoding, the
+         radio, the beacon (always visible: STOP), and at the end the time
+         (testers, 0.20: at the left, under the menu, it read badly) -->
+    <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="16,6">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Classes="plain" Click="OnBalise" Padding="0" ToolTip.Tip="Ouvre la fenêtre Balise (séquence, cycle, Tune)">
+            <Border Classes="badge" Classes.cycle="{Binding BadgeCycle}" Classes.tx="{Binding BadgeTx}" CornerRadius="10" Padding="10,2">
+              <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding BadgeText}" />
+            </Border>
+          </Button>
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding NextTxShown}"
+                      ToolTip.Tip="Prochaine émission de la balise (cycle de la fenêtre Balise), heure UTC">
+            <TextBlock Classes="muted" VerticalAlignment="Center" Text="prochaine émission" />
+            <TextBlock Classes="mono" VerticalAlignment="Center" Text="{Binding NextTx}" />
+          </StackPanel>
+          <Button Classes="tx" Padding="10,3" Command="{Binding SendNowCommand}" IsVisible="{Binding !TxActive}"
+                  ToolTip.Tip="Émet la séquence de la balise une fois, tout de suite">Émettre maintenant</Button>
+          <Button Padding="10,3" Background="{DynamicResource TxStop}" Foreground="White" FontWeight="SemiBold"
+                  Command="{Binding StopTxCommand}" IsVisible="{Binding TxActive}">ARRÊT · Échap</Button>
+          <Border Width="1" Background="{DynamicResource Line}" Margin="12,2" />
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" ToolTip.Tip="Heure UTC de l'ordinateur (à synchroniser)">
+            <TextBlock Classes="mono clock" Text="{Binding Utc}" />
+            <TextBlock Classes="muted" VerticalAlignment="Bottom" Margin="0,0,0,5" Text="UTC" />
+          </StackPanel>
+        </StackPanel>
+        <WrapPanel ItemSpacing="20" LineSpacing="6" VerticalAlignment="Center">
+          <!-- the input level and, under it in the same format, the processor
+               used by the program (testers, 0.18) -->
+          <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="5" VerticalAlignment="Center">
+            <TextBlock Classes="muted" FontSize="12" VerticalAlignment="Center" Text="Entrée" ToolTip.Tip="{Binding LevelText}" />
+            <c:LevelMeter Grid.Column="1" Width="140" Height="9" VerticalAlignment="Center" ToolTip.Tip="{Binding LevelText}"
+                          Level="{Binding LevelDbfs}" Peak="{Binding PeakDbfs}" />
+            <TextBlock Grid.Row="1" Classes="muted" FontSize="12" VerticalAlignment="Center" Text="CPU" ToolTip.Tip="{Binding CpuTip}" />
+            <c:CpuMeter Grid.Row="1" Grid.Column="1" Width="140" Height="9" VerticalAlignment="Center" ToolTip.Tip="{Binding CpuTip}"
+                        Percent="{Binding CpuPercent}" />
+          </Grid>
+          <ToggleButton Classes="ok" IsChecked="{Binding DecodingActive}" VerticalAlignment="Center">Décodage actif</ToggleButton>
+          <!-- a continuous recording running: its time; a click stops it -->
+          <Button Classes="tx" VerticalAlignment="Center" IsVisible="{Binding Recording}" Command="{Binding ToggleRecordingCommand}"
+                  ToolTip.Tip="Enregistrement continu en cours (Réception) : un clic l'arrête">
+            <TextBlock Classes="mono" Text="{Binding RecordingText}" />
+          </Button>
+          <StackPanel Classes="pair">
+            <TextBlock Classes="muted" Text="Radio" />
+            <TextBox Classes="mono" FontSize="16" Width="130" Text="{Binding RadioFrequency}" IsReadOnly="{Binding FreqFromCat}"
+                     ToolTip.Tip="Fréquence de la radio, pour la fréquence RF des spots (lue par CAT si réglé)" />
+            <TextBlock Classes="muted" Text="MHz USB" />
+          </StackPanel>
+        </WrapPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- technical information (Affichage › Informations techniques): the
+         source, the search, the passes, the audio, Tune -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Strip}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1"
+            Padding="16,6" IsVisible="{Binding ShowTech}">
+      <WrapPanel ItemSpacing="20" LineSpacing="6" VerticalAlignment="Center">
+        <StackPanel Classes="pair">
+          <TextBlock Classes="muted" Text="Source" />
+          <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" MinWidth="200" MaxWidth="360"
+                    PlaceholderText="recherche des entrées audio…" />
+        </StackPanel>
+        <StackPanel Classes="pair" Spacing="6">
+          <ToggleButton Classes="chip" IsVisible="{Binding HasClassic}" IsChecked="{Binding SearchClassic}" Content="{Binding ClassicLabel}" />
+          <ToggleButton Classes="chip" IsChecked="{Binding SearchTwistS}">TWIST S</ToggleButton>
+          <ToggleButton Classes="chip" IsChecked="{Binding SearchTwistL}">TWIST L</ToggleButton>
+          <ToggleButton Classes="chip" IsVisible="{Binding HasPi4}" IsChecked="{Binding SearchPi4}">PI4</ToggleButton>
+        </StackPanel>
+        <StackPanel Classes="pair">
+          <TextBlock Classes="muted" Text="Centre" />
+          <TextBox Classes="mono" Width="64" Text="{Binding CenterHz}" />
+          <TextBlock Classes="muted" Text="±" />
+          <TextBox Classes="mono" Width="56" Text="{Binding WidthHz}" />
+          <TextBlock Classes="muted" Text="Hz" />
+        </StackPanel>
+        <StackPanel Classes="pair">
+          <TextBlock Classes="muted" Text="Entrée" />
+          <TextBlock Classes="mono" Foreground="{Binding LevelBrush}" Text="{Binding LevelText}" />
+        </StackPanel>
+        <StackPanel Classes="pair">
+          <TextBlock Classes="muted" Text="Passe" />
+          <TextBlock Classes="mono" Text="{Binding PassText}" />
+        </StackPanel>
+        <StackPanel Classes="pair">
+          <TextBlock Classes="muted" Text="CPU" />
+          <TextBlock Classes="mono" Text="{Binding CpuText}" />
+        </StackPanel>
+        <StackPanel Classes="pair">
+          <TextBlock Classes="muted" Text="Audio" />
+          <TextBlock Classes="mono" Text="{Binding AudioText}" />
+        </StackPanel>
+        <Button Classes="tune" ToolTip.Tip="Porteuse continue pour le réglage, arrêt automatique (Balise › Tune)"
+                Command="{Binding ToggleTuneCommand}" Content="{Binding TuneLabel}" />
+      </WrapPanel>
+    </Border>
+
+    <!-- replay of a WAV file: only while a file is the source -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource AccentBg}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1"
+            Padding="16,6" IsVisible="{Binding ReplayShown}">
+      <WrapPanel ItemSpacing="16" LineSpacing="6" VerticalAlignment="Center">
+        <StackPanel Classes="pair">
+          <TextBlock FontWeight="SemiBold" Text="Lecture du fichier" />
+          <ProgressBar Width="260" Height="10" MinWidth="0" Minimum="0" Maximum="100" Value="{Binding ReplayPercent}" />
+        </StackPanel>
+        <TextBlock Classes="mono" VerticalAlignment="Center" Text="{Binding ReplayText}" />
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <CheckBox IsChecked="{Binding ReplayFast}" Content="Lecture rapide"
+                    ToolTip.Tip="Aussi vite que le décodage le permet, sans attendre le temps réel (le waterfall ne suit pas)" />
+          <Button Command="{Binding StopReplayCommand}" IsVisible="{Binding ReplayPlaying}">Arrêter</Button>
+          <Button Command="{Binding ReplayAgainCommand}" IsVisible="{Binding !ReplayPlaying}">Relire</Button>
+          <Button Command="{Binding BackToInputCommand}" ToolTip.Tip="Reprend la réception par la carte son">Revenir à l'entrée audio</Button>
+        </StackPanel>
+      </WrapPanel>
+    </Border>
+
+    <!-- status bar -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="16,4">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding FooterEngine}" />
+        <WrapPanel ItemSpacing="24">
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding FooterSource}" />
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding FooterZone}" />
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding FooterCat}" />
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding FooterCsv}" TextTrimming="CharacterEllipsis" />
+        </WrapPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- waterfall, spots, journal: full width; each one can be detached in
+         a window of its own (MainWindow.axaml.cs places them, the one that
+         fills the height included) -->
+    <Grid x:Name="PanelGrid" RowDefinitions="Auto,*,Auto" Margin="12">
+
+      <!-- waterfall (collapsible panel) -->
+      <Border x:Name="WaterfallPanel" Grid.Row="0" Classes="panel" ClipToBounds="True">
+        <DockPanel>
+          <DockPanel DockPanel.Dock="Top" Margin="12,6">
+            <Button DockPanel.Dock="Right" Classes="detach" Command="{Binding ToggleDetachCommand}" CommandParameter="waterfall"
+                    ToolTip.Tip="{Binding WaterfallDetachTip}">
+              <Path Data="M4.5,1.5 H12.5 V9.5 M1.5,4.5 H9.5 V12.5 H1.5 Z" />
+            </Button>
+          <WrapPanel ItemSpacing="24" LineSpacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+              <ToggleButton Classes="head" IsChecked="{Binding WaterfallOpen}" Padding="4,2" IsHitTestVisible="{Binding !WaterfallDetached}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <StackPanel IsVisible="{Binding !WaterfallDetached}">
+                    <TextBlock Text="▾" IsVisible="{Binding WaterfallOpen}" />
+                    <TextBlock Text="▸" IsVisible="{Binding !WaterfallOpen}" />
+                  </StackPanel>
+                  <TextBlock Classes="h2" Text="Waterfall" />
+                </StackPanel>
+              </ToggleButton>
+              <TextBlock Classes="muted" VerticalAlignment="Center" MinWidth="90" Text="{Binding WfInfo}" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+              <StackPanel Classes="pair">
+                <TextBlock Classes="muted" Text="Gain" />
+                <Slider Width="90" Value="{Binding WfGain}" Maximum="100" />
+              </StackPanel>
+              <StackPanel Classes="pair">
+                <TextBlock Classes="muted" Text="Contraste" />
+                <Slider Width="90" Value="{Binding WfContrast}" Maximum="100" />
+              </StackPanel>
+              <StackPanel Classes="pair">
+                <TextBlock Classes="muted" Text="Bande" />
+                <ComboBox ItemsSource="{Binding WfBands}" SelectedIndex="{Binding WfBandIndex}" />
+              </StackPanel>
+              <StackPanel Classes="pair">
+                <TextBlock Classes="muted" Text="Vitesse" />
+                <ComboBox ItemsSource="{Binding WfSpeeds}" SelectedIndex="{Binding WfSpeedIndex}" />
+              </StackPanel>
+            </StackPanel>
+          </WrapPanel>
+          </DockPanel>
+          <c:WaterfallView x:Name="WaterfallBox" Height="340" MinHeight="120" IsVisible="{Binding WaterfallShown}"
+                           Tap="{Binding Tap}" Marks="{Binding Marks}"
+                           Center="{Binding WfCenter}" HalfWidth="{Binding WfHalfWidth}"
+                           FixedLo="{Binding WfFixedLo}" FixedHi="{Binding WfFixedHi}"
+                           MinuteLines="{Binding WfMinuteLines}" Lines="{Binding WfRows, Mode=OneWayToSource}"
+                           ShowZone="{Binding WfShowZone}" ShowPi4Zone="{Binding WfShowPi4}"
+                           Pi4Center="{Binding WfPi4Center}" Pi4HalfWidth="{Binding WfPi4HalfWidth}"
+                           Gain="{Binding WfGain}" Contrast="{Binding WfContrast}" LineSeconds="{Binding WfLineSeconds}" />
+        </DockPanel>
+      </Border>
+
+      <!-- spots: whole lines, vertical scrolling, fixed header -->
+      <Border x:Name="SpotsPanel" Grid.Row="1" Classes="panel">
+        <DockPanel>
+          <DockPanel DockPanel.Dock="Top" Margin="12,6">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+              <Button Command="{Binding OpenCsvCommand}" ToolTip.Tip="Ouvre le journal CSV du jour (ou son dossier)">Ouvrir le journal CSV</Button>
+              <Button Command="{Binding ClearSpotsCommand}" ToolTip.Tip="Vide l'affichage ; les spots restent dans le journal CSV">Vider la liste</Button>
+              <Button Classes="detach" Command="{Binding ToggleDetachCommand}" CommandParameter="spots"
+                      ToolTip.Tip="{Binding SpotsDetachTip}">
+                <Path Data="M4.5,1.5 H12.5 V9.5 M1.5,4.5 H9.5 V12.5 H1.5 Z" />
+              </Button>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+              <TextBlock Classes="h2" Text="Spots" />
+              <!-- a signal being received: said in place of the counts, so
+                   that the list does not move (testers, 0.18) -->
+              <Panel VerticalAlignment="Center">
+                <TextBlock Classes="muted" Text="{Binding SpotsSummary}" IsVisible="{Binding !ReceivingNow}" />
+                <Border x:Name="ReceivingBadge" Background="{DynamicResource AccentBg}" CornerRadius="4" Padding="8,2"
+                        IsVisible="{Binding ReceivingNow}" ToolTip.Tip="{Binding SpotsSummary}">
+                  <TextBlock Classes="mono" FontSize="12" Foreground="{DynamicResource Classic}" Text="{Binding ReceivingText}"
+                             TextTrimming="CharacterEllipsis" />
+                </Border>
+              </Panel>
+            </StackPanel>
+          </DockPanel>
+          <!-- a new version (MainWindowViewModel.Updates.cs) -->
+          <Border DockPanel.Dock="Top" Padding="12,8" Background="{DynamicResource AccentBg}" IsVisible="{Binding UpdateBanner}">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                <Button Classes="link" Command="{Binding UpdateNotesShowCommand}">Nouveautés</Button>
+                <Button Classes="ok" Command="{Binding InstallUpdateCommand}" IsEnabled="{Binding !UpdateBusy}"
+                        Content="{Binding UpdateButtonText}" />
+                <Button Command="{Binding UpdateLaterCommand}">Plus tard</Button>
+              </StackPanel>
+              <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding UpdateText}" />
+            </DockPanel>
+          </Border>
+          <Border DockPanel.Dock="Top" Padding="12,10" IsVisible="{Binding ClearedBanner}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Classes="muted" Text="{Binding ClearedText}" />
+              <Button Classes="link" Command="{Binding UndoClearCommand}">Annuler</Button>
+            </StackPanel>
+          </Border>
+          <!-- a doubtful callsign: its line greyed (class doubt, set as the row
+               is loaded); right click or Delete: the line leaves the list -->
+          <DataGrid x:Name="SpotsGrid" ItemsSource="{Binding Spots}" IsReadOnly="True" CanUserReorderColumns="False"
+                    HeadersVisibility="Column" SelectionMode="Single" RowHeight="20"
+                    SelectedItem="{Binding SelectedSpot}" LoadingRow="OnSpotRow" KeyDown="OnSpotsKey">
+            <DataGrid.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Supprimer la ligne" InputGesture="Delete" Command="{Binding DeleteSpotCommand}" />
+              </ContextMenu>
+            </DataGrid.ContextMenu>
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Début (UTC)" Binding="{Binding Start}" Width="Auto" />
+              <DataGridTemplateColumn Header="Protocole" Width="Auto">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="vm:SpotViewModel">
+                    <TextBlock Margin="12,0" VerticalAlignment="Center" Classes="proto" Classes.classic="{Binding IsClassic}" Classes.pi4="{Binding IsPi4}" Text="{Binding ProtoText}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Indicatif" Width="Auto">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="vm:SpotViewModel">
+                    <TextBlock Margin="12,0" VerticalAlignment="Center" Text="{Binding CallText}"
+                               Classes="cell call" Classes.guessed="{Binding CallGuessed}"
+                               ToolTip.Tip="{Binding CallTip}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <!-- a locator not received in the frame: greyed, its origin in the tooltip -->
+              <DataGridTemplateColumn Header="Locator" Width="Auto">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="vm:SpotViewModel">
+                    <TextBlock Margin="12,0" VerticalAlignment="Center" Classes="cell" Classes.guessed="{Binding LocGuessed}"
+                               Text="{Binding Loc}" ToolTip.Tip="{Binding LocTip}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="SNR" Binding="{Binding Snr}" Width="Auto" />
+              <DataGridTextColumn Header="Audio" Binding="{Binding Audio}" Width="Auto" />
+              <DataGridTextColumn Header="RF (MHz)" Binding="{Binding Rf}" Width="Auto" />
+              <DataGridTemplateColumn Header="Distance" Width="Auto">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="vm:SpotViewModel">
+                    <TextBlock Margin="12,0" VerticalAlignment="Center" Classes="cell" Classes.guessed="{Binding LocGuessed}"
+                               Text="{Binding Distance}" ToolTip.Tip="{Binding LocTip}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Azimut" Width="*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="vm:SpotViewModel">
+                    <TextBlock Margin="12,0" VerticalAlignment="Center" Classes="cell" Classes.guessed="{Binding LocGuessed}"
+                               Text="{Binding Azimuth}" ToolTip.Tip="{Binding LocTip}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </Border>
+
+      <!-- journal (collapsible panel): closed, one line with the last warning -->
+      <Border x:Name="JournalPanel" Grid.Row="2" Classes="panel">
+        <DockPanel>
+          <DockPanel DockPanel.Dock="Top">
+            <Button DockPanel.Dock="Right" Classes="detach" Margin="0,0,7,0" Command="{Binding ToggleDetachCommand}" CommandParameter="journal"
+                    ToolTip.Tip="{Binding JournalDetachTip}">
+              <Path Data="M4.5,1.5 H12.5 V9.5 M1.5,4.5 H9.5 V12.5 H1.5 Z" />
+            </Button>
+          <ToggleButton Classes="head" IsChecked="{Binding JournalOpen}" HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch" Padding="12,6" IsHitTestVisible="{Binding !JournalDetached}">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Classes="mono" FontSize="12" Foreground="{DynamicResource Amber}" Text="{Binding LastWarning}" />
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <StackPanel IsVisible="{Binding !JournalDetached}">
+                  <TextBlock Text="▾" IsVisible="{Binding JournalOpen}" />
+                  <TextBlock Text="▸" IsVisible="{Binding !JournalOpen}" />
+                </StackPanel>
+                <TextBlock Classes="h2" Text="Journal" />
+                <TextBlock Classes="muted" Text="{Binding JournalSummary}" />
+              </StackPanel>
+            </DockPanel>
+          </ToggleButton>
+          </DockPanel>
+          <!-- 6 lines of 16 px exactly: no line is ever cut -->
+          <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="12,6" IsVisible="{Binding JournalShown}">
+            <ScrollViewer x:Name="JournalScroll" Height="96">
+              <ItemsControl ItemsSource="{Binding Journal}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Classes="mono" FontSize="12" Height="16" LineHeight="16" Foreground="{DynamicResource JournalText}" Text="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Border>
+        </DockPanel>
+      </Border>
+    </Grid>
+  </DockPanel>
+</Window>

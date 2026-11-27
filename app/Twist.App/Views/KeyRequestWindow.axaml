@@ -1,0 +1,27 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Twist.App.Views.KeyRequestWindow"
+        Icon="/Assets/twist.ico" Title="Clé fbbspots" Width="480" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource Panel}">
+  <!-- the answer: in the colour of the text, or of the errors (classes:
+       the colours are theme resources, taken by DynamicResource) -->
+  <Window.Styles>
+    <Style Selector="TextBlock#Result"><Setter Property="Foreground" Value="{DynamicResource Text}" /></Style>
+    <Style Selector="TextBlock#Result.error"><Setter Property="Foreground" Value="{DynamicResource ErrorText}" /></Style>
+  </Window.Styles>
+  <StackPanel Margin="20" Spacing="14">
+    <TextBlock FontSize="15" FontWeight="SemiBold" Text="Demander la clé fbbspots de la station" />
+    <TextBlock x:Name="Station" Classes="mono" />
+    <StackPanel Spacing="4">
+      <TextBlock Classes="muted" Text="Adresse email (la clé y est envoyée)" />
+      <TextBox x:Name="Email" Watermark="f5xyz@example.org" />
+    </StackPanel>
+    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+               Text="L'adresse sert seulement à envoyer la clé. Une nouvelle demande (même indicatif, même adresse) remplace la clé précédente." />
+    <TextBlock x:Name="Result" TextWrapping="Wrap" IsVisible="False" />
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="CloseButton" Click="OnClose">Fermer</Button>
+      <Button x:Name="AskButton" Background="#1F6F8B" Foreground="White" FontWeight="SemiBold" Click="OnAsk" IsDefault="True">Demander</Button>
+    </StackPanel>
+  </StackPanel>
+</Window>
