@@ -4,16 +4,21 @@ name: macos
 # libraries built from their sources for 10.15 (cached), the engine and
 # its tests, the application and its tests, TWIST Console.app in a .dmg and
 # a .zip, then the application started once to see that it opens.
-# By hand only (Actions › macos › Run workflow): on a private repository
-# a macOS minute counts ten.
+# By hand (Actions › macos › Run workflow), and for each published
+# Release, to which the .dmg and the .zip are added (the Windows
+# installer: ci.yml).
 on:
   workflow_dispatch:
+  release:
+    types: [published]
 
 # Each step writes its output to logs/<step>.log too; on failure, the end
 # of those logs is given as annotations (readable without the log).
 jobs:
   mac-intel:
     runs-on: macos-15-intel
+    permissions:
+      contents: write          # the Release of a version tag
     defaults:
       run:
         shell: bash
@@ -62,6 +67,15 @@ jobs:
           echo "== $log"; cat "$log"
           ! grep -q fatal "$log"
           pkill -f "TWIST Console.app/Contents/MacOS/Twist" || true
+      - name: Release (published Release only)
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          ver=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' app/Twist.App/Twist.App.csproj | head -1)
+          [ "$tag" = "v$ver" ] || { echo "::error::tag $tag, but the application is $ver"; exit 1; }
+          gh release upload "$tag" dist/*.dmg dist/*.zip --clobber
       - name: Report the failure
         if: failure()
         run: |
